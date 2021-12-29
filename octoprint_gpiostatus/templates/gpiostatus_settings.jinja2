@@ -1,0 +1,137 @@
+<div class="row-fluid">
+
+    <div class="tabbable">
+
+        <h3>GPIO Status</h3>
+        <div class="control-group">
+            <input type="button" class="btn btn-primary" data-bind="click: refresh" value="Refresh">
+            <label class="update-label">Last on <span data-bind="text: updated_hour">-</span></label>
+        </div>
+
+        <ul class="nav nav-tabs" id="tabs">
+            <li class="active"><a data-toggle="tab" href="#gpiostatus_gpio_status">GPIO</a></li>
+            <li><a data-toggle="tab" href="#gpiostatus_services">Services</a></li>
+            <li><a data-toggle="tab" href="#gpiostatus_funcs">Functionalities</a></li>
+        </ul>
+
+        <div class="tab-content">
+            <div id="gpiostatus_gpio_status" class="tab-pane active">
+                <div class="control-group">
+                    <label class="checkbox">
+                        <input type="checkbox" data-bind="checked: compact_view, click: checkUpdated">
+                        {{ _("Compact view") }}
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <table class="table table-condensed table-hover table-striped"
+                           data-bind="css: { 'table-compressed':  compact_view(),
+                                             'table-uncompressed': !compact_view()}">
+                        <thead data-bind="html: gpio_table_header">
+                        <!-- Header data -->
+                        </thead>
+                        <tbody data-bind="html: gpio_table">
+                        <!-- GPIO data -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="gpiostatus_services" class="tab-pane">
+                <form class="form-horizontal">
+                    <div class="control-group">
+                        <label class="control-label">{{ _('Camera') }}</label>
+                        <div class="controls">
+                            <label class="padding-top" data-bind="text: camera_status,
+                                    css: { 'label-enabled': camera_status() == 'enabled',
+                                           'label-disabled': camera_status() == 'disabled'}">-</label>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">{{ _('SSH') }}</label>
+                        <div class="controls">
+                            <label class="padding-top" data-bind="text: ssh_status,
+                                    css: { 'label-enabled': ssh_status() == 'enabled',
+                                           'label-disabled': ssh_status() == 'disabled'}">-</label>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">{{ _('SPI') }}</label>
+                        <div class="controls">
+                            <label class="padding-top" data-bind="text: spi_status,
+                                    css: { 'label-enabled': spi_status() == 'enabled',
+                                           'label-disabled': spi_status() == 'disabled'}">-</label>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">{{ _('I2C') }}</label>
+                        <div class="controls">
+                            <label class="padding-top" data-bind="text: i2c_status,
+                                    css: { 'label-enabled': i2c_status() == 'enabled',
+                                           'label-disabled': i2c_status() == 'disabled'}">-</label>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">{{ _('Serial') }}</label>
+                        <div class="controls">
+                            <label class="padding-top" data-bind="text: serial_status,
+                                    css: { 'label-enabled': serial_status() == 'enabled',
+                                           'label-disabled': serial_status() == 'disabled'}">-</label>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">{{ _('Hardware Serial') }}</label>
+                        <div class="controls">
+                            <label class="padding-top" data-bind="text: serial_hw_status,
+                                    css: { 'label-enabled': serial_hw_status() == 'enabled',
+                                           'label-disabled': serial_hw_status() == 'disabled'}">-</label>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">{{ _('1-wire') }}</label>
+                        <div class="controls">
+                            <label class="padding-top" data-bind="text: one_wire_status,
+                                    css: { 'label-enabled': one_wire_status() == 'enabled',
+                                           'label-disabled': one_wire_status() == 'disabled'}">-</label>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">{{ _('Remote GPIO') }}</label>
+                        <div class="controls">
+                            <label class="padding-top" data-bind="text: rgpio_status,
+                                    css: { 'label-enabled': rgpio_status() == 'enabled',
+                                           'label-disabled': rgpio_status() == 'disabled'}">-</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div id="gpiostatus_funcs" class="tab-pane">
+                <div class="control-group">
+                    <table class="table table-condensed table-hover table-striped table-uncompressed">
+                        <thead>
+                            <tr>
+                                <td>BCM Pin</td>
+                                <td>ALT0</td>
+                                <td>ALT1</td>
+                                <td>ALT2</td>
+                                <td>ALT3</td>
+                                <td>ALT4</td>
+                                <td>ALT5</td>
+                            </tr>
+                        </thead>
+                        <tbody data-bind="html: funcs_table">
+                            <!-- Func data -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

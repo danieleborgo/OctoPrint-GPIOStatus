@@ -1,29 +1,165 @@
 # coding=utf-8
+"""
+Copyright (C) 2021 Daniele Borgo
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
 from __future__ import absolute_import
-
-### (Don't forget to remove me)
-# This is a basic skeleton for your plugin's __init__.py. You probably want to adjust the class name of your plugin
-# as well as the plugin mixins it's subclassing from. This is really just a basic skeleton to get you started,
-# defining your plugin as a template plugin, settings and asset plugin. Feel free to add or remove mixins
-# as necessary.
-#
-# Take a look at the documentation on what other plugin mixins are available.
-
 import octoprint.plugin
+import subprocess
+from flask import jsonify
+import gpiozero
 
-class GpiostatusPlugin(octoprint.plugin.SettingsPlugin,
+__plugin_pythoncompat__ = ">=3,<4"  # only python 3
+
+
+class GPIOStatusPlugin(
+    octoprint.plugin.SettingsPlugin,
     octoprint.plugin.AssetPlugin,
-    octoprint.plugin.TemplatePlugin
+    octoprint.plugin.TemplatePlugin,
+    octoprint.plugin.StartupPlugin,
+    octoprint.plugin.ShutdownPlugin,
+    octoprint.plugin.SimpleApiPlugin
 ):
 
-    ##~~ SettingsPlugin mixin
+    def __init__(self):
+        super().__init__()
 
-    def get_settings_defaults(self):
+    def on_startup(self, host, port):
+        self._logger.info("GPIOStatusPlugin ready")
+
+    def get_api_commands(self):
+        return dict(
+            gpio_status=[]
+        )
+
+    def on_api_command(self, command, data):
+        self._logger.info("Refresh request received")
+        if command == "gpio_status":
+            return jsonify(GPIOStatusPlugin.__get_status())
+        return None
+
+    @staticmethod
+    def __get_status():
+        info = gpiozero.pi_info()
+
+        status = GPIOStatusPlugin.__get_physical_pins(info)
+        GPIOStatusPlugin.__inject_bcm_data_in_physicals(status)
+
         return {
-            # put your plugin's default settings here
+            "services": GPIOStatusPlugin.__get_services_status(),
+            "status": status
         }
 
-    ##~~ AssetPlugin mixin
+    @staticmethod
+    def __get_services_status():
+        return {
+            "camera": GPIOStatusPlugin.__get_service_status("raspi-config nonint get_camera"),
+            "ssh": GPIOStatusPlugin.__get_service_status("raspi-config nonint get_ssh"),
+            "spi": GPIOStatusPlugin.__get_service_status("raspi-config nonint get_spi"),
+            "i2c": GPIOStatusPlugin.__get_service_status("raspi-config nonint get_i2c"),
+            "serial": GPIOStatusPlugin.__get_service_status("raspi-config nonint get_serial"),
+            "serial_hw": GPIOStatusPlugin.__get_service_status("raspi-config nonint get_serial_hw"),
+            "one_wire": GPIOStatusPlugin.__get_service_status("raspi-config nonint get_onewire"),
+            "remote_gpio": GPIOStatusPlugin.__get_service_status("raspi-config nonint get_rgpio")
+        }
+
+    @staticmethod
+    def __get_service_status(command):
+        return GPIOStatusPlugin.__execute_command(command) == "0"
+
+    @staticmethod
+    def __execute_command(command):
+        return subprocess.run(command.split(), capture_output=True).stdout.decode("utf-8").strip()
+
+    @staticmethod
+    def __get_physical_pins(info: gpiozero.PiBoardInfo):
+        pinout = info.headers["J8"]
+
+        return {
+            "rows": pinout.rows,
+            "columns": pinout.columns,
+            "pins": sorted([
+                {
+                    "physical_name": pinout.pins[key].number,
+                    "name": pinout.pins[key].function
+                }
+                for key in pinout.pins
+            ], key=lambda pin: pin["physical_name"])
+        }
+
+    @staticmethod
+    def __inject_bcm_data_in_physicals(physical_pins):
+        n_bcm_pins = GPIOStatusPlugin.__count_bcm_pins(physical_pins["pins"])
+        bcm_pins_status = GPIOStatusPlugin.__get_bcm_pins_status(n_bcm_pins)
+
+        for pin in physical_pins["pins"]:
+            if pin["name"] in bcm_pins_status:
+                pin["is_bcm"] = True
+                pin.update(bcm_pins_status[pin["name"]])
+            else:
+                pin["is_bcm"] = False
+
+    @staticmethod
+    def __count_bcm_pins(pins):
+        return len([pin for pin in pins if pin["name"].startswith("GPIO")])
+
+    @staticmethod
+    def __get_bcm_pins_status(n_bcm_pins):
+        bcm_pins_status = GPIOStatusPlugin.__get_split_raw_bcm_pins_status(n_bcm_pins)
+        bcm_pins_funcs = GPIOStatusPlugin.__get_split_raw_bcm_pins_funcs(n_bcm_pins)
+
+        formatted = {}
+        for i in range(len(bcm_pins_status)):
+            status = bcm_pins_status[i]
+            funcs = bcm_pins_funcs[i]
+
+            formatted[f"GPIO{status[0]}"] = {
+                "current_value": int(status[1]),  # level
+                "pull": funcs[1],
+                "current_func": status[2],  # alt or I/O
+                "funcs": funcs[2:]
+            }
+
+        return formatted
+
+    @staticmethod
+    def __get_split_raw_bcm_pins_status(n_bcm_pins):
+        return [
+            [
+                # GPIO pin number
+                config[1].replace(":", ""),
+                # pin level
+                config[2][config[2].find("=") + 1:],
+                # fsel not needed
+                # pin function
+                config[4][config[4].find("=") + 1:]
+            ]
+            for config in [
+                config.split()
+                for config in GPIOStatusPlugin.__execute_command(
+                    f"raspi-gpio get {0}-{n_bcm_pins - 1}"
+                ).split("\n")
+            ]
+        ]
+
+    @staticmethod
+    def __get_split_raw_bcm_pins_funcs(n_bcm_pins):
+        return [
+            config.split(", ")
+            for config in GPIOStatusPlugin.__execute_command(
+                f"raspi-gpio funcs {0}-{n_bcm_pins - 1}"
+            ).split("\n")[1:]
+        ]
 
     def get_assets(self):
         # Define your plugin's asset files to automatically include in the
@@ -34,15 +170,13 @@ class GpiostatusPlugin(octoprint.plugin.SettingsPlugin,
             "less": ["less/gpiostatus.less"]
         }
 
-    ##~~ Softwareupdate hook
-
     def get_update_information(self):
         # Define the configuration for your plugin to use with the Software Update
         # Plugin here. See https://docs.octoprint.org/en/master/bundledplugins/softwareupdate.html
         # for details.
         return {
             "gpiostatus": {
-                "displayName": "Gpiostatus Plugin",
+                "displayName": "GPIOStatus Plugin",
                 "displayVersion": self._plugin_version,
 
                 # version check: github repository
@@ -57,21 +191,9 @@ class GpiostatusPlugin(octoprint.plugin.SettingsPlugin,
         }
 
 
-# If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
-# ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
-# can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
-__plugin_name__ = "Gpiostatus Plugin"
-
-# Starting with OctoPrint 1.4.0 OctoPrint will also support to run under Python 3 in addition to the deprecated
-# Python 2. New plugins should make sure to run under both versions for now. Uncomment one of the following
-# compatibility flags according to what Python versions your plugin supports!
-#__plugin_pythoncompat__ = ">=2.7,<3" # only python 2
-#__plugin_pythoncompat__ = ">=3,<4" # only python 3
-#__plugin_pythoncompat__ = ">=2.7,<4" # python 2 and 3
-
 def __plugin_load__():
     global __plugin_implementation__
-    __plugin_implementation__ = GpiostatusPlugin()
+    __plugin_implementation__ = GPIOStatusPlugin()
 
     global __plugin_hooks__
     __plugin_hooks__ = {

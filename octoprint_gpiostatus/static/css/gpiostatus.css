@@ -1,1 +1,39 @@
 /* TODO: Have your plugin's CSS files generated to here. */
+
+.table-compressed,
+.table-uncompressed{
+
+}
+
+.table-compressed thead tr td,
+.table-uncompressed thead tr td{
+    text-align: center;
+    font-weight: bold;
+}
+
+.table-compressed tbody tr td:nth-child(1),
+.table-compressed tbody tr td:nth-child(2),
+.table-compressed tbody tr td:nth-child(3),
+.table-compressed tbody tr td:nth-child(4),
+.table-compressed tbody tr td:nth-child(5){
+    text-align: right;
+}
+
+padding-top{
+    padding-top: 5px;
+}
+
+.label-enabled{
+    color: #F00;
+    font-weight: bold;
+}
+
+.label-disabled{
+    color: #0AF;
+    font-weight: bold;
+}
+
+.label-undefined{
+    color: #0F0;
+    font-weight: bold;
+}

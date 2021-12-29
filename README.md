@@ -1,6 +1,8 @@
-# GPIOStatus
+# GPIO Status
 
-**TODO:** Describe what your plugin does.
+This plugin allows to check the GPIO status by the
+OctoPrint web interface, without connect via SSH.
+
 
 ## Setup
 
@@ -9,9 +11,8 @@ or manually using this URL:
 
     https://github.com/danieleborgo/OctoPrint-GPIOStatus/archive/master.zip
 
-**TODO:** Describe how to install your plugin, if more needs to be done than just installing it via pip or through
-the plugin manager.
 
-## Configuration
+## License
 
-**TODO:** Describe your plugin's configuration options (if any).
+This software is distributed on GPLv3.0, more information
+available in [LICENSE.md](LICENSE.md).

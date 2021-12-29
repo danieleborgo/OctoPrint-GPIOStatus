@@ -7,7 +7,7 @@
 plugin_identifier = "gpiostatus"
 
 # The plugin's python package, should be "octoprint_<plugin identifier>", has to be unique
-plugin_package = "octoprint_gpiostatus"
+plugin_package = "octoprint_" + plugin_identifier
 
 # The plugin's human readable name. Can be overwritten within OctoPrint's internal data via __plugin_name__ in the
 # plugin module
@@ -33,7 +33,7 @@ plugin_url = "https://github.com/danieleborgo/OctoPrint-GPIOStatus"
 plugin_license = "GPLv3"
 
 # Any additional requirements besides OctoPrint should be listed here
-plugin_requires = []
+plugin_requires = ["OctoPrint>=1.7.2", "gpiozero>=1.6.2"]
 
 ### --------------------------------------------------------------------------------------------------------------------
 ### More advanced options that you usually shouldn't have to touch follow after this point

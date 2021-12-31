@@ -35,6 +35,15 @@
                         </tbody>
                     </table>
                 </div>
+
+                <div class="control-group">
+                    Remember that this plugin doesn't know which pins are in use and which are free, since
+                    its purpose is to just show their state.
+                </div>
+
+                <div class="control-group" style="text-align: center;">
+                    <img src="" data-bind="attr:{src: raspberry_image}" alt="Raspberry" class="raspberry-image">
+                </div>
             </div>
 
             <div id="gpiostatus_services" class="tab-pane">
@@ -114,20 +123,20 @@
             </div>
             <div id="gpiostatus_funcs" class="tab-pane">
                 <div class="control-group">
-                    <table class="table table-condensed table-hover table-striped table-uncompressed">
+                    <table class="table table-condensed table-hover table-striped table-uncompressed table-funcs">
                         <thead>
-                            <tr>
-                                <td>BCM Pin</td>
-                                <td>ALT0</td>
-                                <td>ALT1</td>
-                                <td>ALT2</td>
-                                <td>ALT3</td>
-                                <td>ALT4</td>
-                                <td>ALT5</td>
-                            </tr>
+                        <tr>
+                            <td>BCM Pin</td>
+                            <td>ALT0</td>
+                            <td>ALT1</td>
+                            <td>ALT2</td>
+                            <td>ALT3</td>
+                            <td>ALT4</td>
+                            <td>ALT5</td>
+                        </tr>
                         </thead>
                         <tbody data-bind="html: funcs_table">
-                            <!-- Func data -->
+                        <!-- Func data -->
                         </tbody>
                     </table>
                 </div>

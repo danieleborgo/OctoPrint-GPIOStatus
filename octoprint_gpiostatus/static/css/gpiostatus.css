@@ -1,12 +1,11 @@
-/* TODO: Have your plugin's CSS files generated to here. */
 
 .table-compressed,
-.table-uncompressed{
+.table-uncompressed {
 
 }
 
 .table-compressed thead tr td,
-.table-uncompressed thead tr td{
+.table-uncompressed thead tr td {
     text-align: center;
     font-weight: bold;
 }
@@ -15,25 +14,96 @@
 .table-compressed tbody tr td:nth-child(2),
 .table-compressed tbody tr td:nth-child(3),
 .table-compressed tbody tr td:nth-child(4),
-.table-compressed tbody tr td:nth-child(5){
+.table-compressed tbody tr td:nth-child(5),
+.table-compressed tbody tr td:nth-child(6) {
     text-align: right;
 }
 
-padding-top{
+.table-compressed tbody tr td:nth-child(6),
+.table-compressed tbody tr td:nth-child(7) {
+    width: 100%;
+}
+
+.table-compressed thead tr td:nth-child(6) {
+    width: 45px;
+}
+
+.padding-top {
     padding-top: 5px;
 }
 
-.label-enabled{
-    color: #F00;
+.label-enabled {
+    color: #00FF00;
     font-weight: bold;
 }
 
-.label-disabled{
-    color: #0AF;
+.label-disabled {
+    color: #FF0000;
     font-weight: bold;
 }
 
-.label-undefined{
-    color: #0F0;
+.label-undefined {
+    color: #00AAFF;
     font-weight: bold;
+}
+
+.td_physical {
+    font-family: monospaced, serif;
+}
+
+.td_gnd {
+    font-weight: bold;
+    color: black;
+}
+
+.td_5v {
+    font-weight: bold;
+    color: #FF0000;
+}
+
+.td_3v3 {
+    font-weight: bold;
+    color: #FFAA00;
+}
+
+.td_in {
+    color: #00AAFF;
+}
+
+.td_out {
+    color: #FF5500;
+}
+
+.td_pull_up {
+    color: #00FF00;
+}
+
+.td_pull_down {
+    color: #FF00FF;
+}
+
+.td_high {
+    color: #FF0000;
+}
+
+.td_low {
+    color: #0000FF;
+}
+
+.td_img {
+    width: 18px;
+    height: 18px;
+}
+
+.table-funcs thead tr td {
+    text-align: left;
+}
+
+.table-funcs tbody tr td:nth-child(1) {
+    font-weight: bold;
+}
+
+.raspberry-image{
+    width: 80%;
+    padding-top: 5%;
 }

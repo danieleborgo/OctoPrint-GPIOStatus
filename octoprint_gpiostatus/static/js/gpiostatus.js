@@ -18,10 +18,7 @@ $(function () {
 
         // assign the injected parameters, e.g.:
         // self.loginStateViewModel = parameters[0];
-        self.settingsViewModel = parameters[0];
-        console.log(self.settingsViewModel);
-
-        // TODO: Implement your plugin's view model here.
+        self.settingsViewModel = parameters[0]; // For future
 
         self.updated_hour = ko.observable("-");
         self.set_hour = function () {
@@ -48,8 +45,13 @@ $(function () {
                 })
             }).done(function (data) {
                 console.log("GPIO status data arrived");
-                self.parse_gpio_status(data.status);
-                self.parse_services(data.services);
+
+                if (data.commands.raspi_config && data.commands.raspi_gpio) {
+                    self.parse_gpio_status_and_funcs(data.status);
+                    self.parse_services(data.services);
+                    self.parse_hardware(data.hardware);
+                } else
+                    self.set_commands_unavailable(data.commands);
             }).fail(function () {
                 console.log("Error");
                 self.set_text_all_output("Failed to retrieve");
@@ -60,7 +62,7 @@ $(function () {
 
         self.gpio_table = ko.observable();
         self.funcs_table = ko.observable();
-        self.parse_gpio_status = function (gpio_status) {
+        self.parse_gpio_status_and_funcs = function (gpio_status) {
             let rows = gpio_status.rows;
             let columns = gpio_status.columns;
             let pins = gpio_status.pins;
@@ -112,22 +114,21 @@ $(function () {
 
         self.gpio_table_header = ko.observable();
         self.gpio_table_headers_list = ["Physical", "Name", "Function", "Pull", "Voltage"];
-        self.gpio_table_image_header = "";
         self.gpio_table_headers_list_html =
             "<tr>" +
-            self.wrap_array_td([self.gpio_table_image_header].concat(self.gpio_table_headers_list)) +
+            self.wrap_array_td(["Image"].concat(self.gpio_table_headers_list)) +
             "</tr>";
         self.gpio_table_headers_list_comp_html =
             "<tr>" +
-            self.wrap_array_td(self.gpio_table_headers_list.slice().reverse()) +
-            "<td colspan='2'>" + self.gpio_table_image_header + "</td>" +
-            self.wrap_array_td(self.gpio_table_headers_list) +
+            self.wrap_array_td(self.gpio_table_headers_list.slice(1).reverse()) +
+            "<td colspan='4'>" + self.gpio_table_headers_list[0] + "</td>" +
+            self.wrap_array_td(self.gpio_table_headers_list.slice(1)) +
             "</tr>";
         self.prepare_header = function (compact_view) {
             self.gpio_table_header(
                 compact_view ?
-                self.gpio_table_headers_list_comp_html :
-                self.gpio_table_headers_list_html
+                    self.gpio_table_headers_list_comp_html :
+                    self.gpio_table_headers_list_html
             );
         }
 
@@ -151,7 +152,7 @@ $(function () {
 
         self.img_folder = "/plugin/gpiostatus/static/img/";
         self.raspberry_image = ko.observable(self.img_folder + "Raspberry.jpg");
-        self.create_img = function (name){
+        self.create_img = function (name) {
             return "<img src='" + self.img_folder + name + ".png' class='td_img' alt='-'>";
         }
 
@@ -160,20 +161,20 @@ $(function () {
         self.imgGND = self.create_img("GND");
         self.imgGPIO = self.create_img("GPIO");
         self.imgGPIO_no = self.create_img("GPIO_NO");
-        self.get_image = function (name, is_bcm){
-            if(is_bcm) {
+        self.get_image = function (name, is_bcm) {
+            if (is_bcm) {
                 if (parseInt(name.substr(4)) > 1)
                     return self.imgGPIO;
                 return self.imgGPIO_no;
             }
-            if(name === "GND")
+            if (name === "GND")
                 return self.imgGND;
-            if(name === "5V")
+            if (name === "5V")
                 return self.img5v;
             return self.img3v3;
         }
 
-        self.format_physical = function(value){
+        self.format_physical = function (value) {
             return self.wrap_span(value, "td_phyisical");
         }
 
@@ -240,11 +241,50 @@ $(function () {
             return status ? "enabled" : "disabled";
         }
 
+        self.model_value = ko.observable();
+        self.revision_value = ko.observable();
+        self.pcb_revision_value = ko.observable();
+        self.released_value = ko.observable();
+        self.manufacturer_value = ko.observable();
+        self.soc_value = ko.observable();
+        self.storage_value = ko.observable();
+        self.usb_value = ko.observable();
+        self.usb3_value = ko.observable();
+        self.memory_value = ko.observable();
+        self.eth_speed_value = ko.observable();
+        self.ethernet_value = ko.observable();
+        self.wifi_value = ko.observable();
+        self.bluetooth_value = ko.observable();
+        self.csi_value = ko.observable();
+        self.dsi_value = ko.observable();
+        self.parse_hardware = function (hardware) {
+            self.model_value(hardware.model);
+            self.revision_value(hardware.revision);
+            self.pcb_revision_value(hardware.pcb_revision);
+            self.released_value(hardware.released);
+            self.manufacturer_value(hardware.manufacturer);
+            self.soc_value(hardware.soc);
+            self.storage_value(hardware.storage);
+            self.usb_value(self.add_port_or_ports(hardware.usb));
+            self.usb3_value(self.add_port_or_ports(hardware.usb3));
+            self.memory_value(hardware.memory + "MB");
+            self.eth_speed_value(hardware.eth_speed + "Mbps");
+            self.ethernet_value(self.add_port_or_ports(hardware.ethernet));
+            self.wifi_value(hardware.wifi ? "Available" : "Unavailable");
+            self.bluetooth_value(hardware.bluetooth ? "Available" : "Unavailable");
+            self.csi_value(hardware.csi ? "Available" : "Unavailable");
+            self.dsi_value(hardware.dsi ? "Available" : "Unavailable");
+        }
+
+        self.add_port_or_ports = function (n) {
+            return n + " port" + (n === 1 ? "" : "s");
+        }
+
         self.set_text_all_output = function (text) {
             self.updated_hour(text)
             self.gpio_table_header("<tr><td>" + text + "</td></tr>")
             self.gpio_table("<tr><td>" + text + "</td></tr>")
-            self.funcs_table("<tr><td>" + text + "</td></tr>")
+            self.funcs_table("<tr><td colspan='7'>" + text + "</td></tr>")
             self.camera_status(text);
             self.ssh_status(text);
             self.spi_status(text);
@@ -254,6 +294,40 @@ $(function () {
             self.one_wire_status(text);
             self.camera_status(text);
             self.rgpio_status(text);
+            self.model_value(text);
+            self.revision_value(text);
+            self.pcb_revision_value(text);
+            self.released_value(text);
+            self.manufacturer_value(text);
+            self.soc_value(text);
+            self.storage_value(text);
+            self.usb_value(text);
+            self.usb3_value(text);
+            self.memory_value(text);
+            self.eth_speed_value(text);
+            self.ethernet_value(text);
+            self.wifi_value(text);
+            self.bluetooth_value(text);
+            self.csi_value(text);
+            self.dsi_value(text);
+        }
+
+        self.notification = ko.observable();
+        self.set_commands_unavailable = function (commands) {
+            let config = !commands.raspi_config;
+            let gpio = !config.raspi_gpio;
+
+            if (config && gpio)
+                self.notification(
+                    "<h4>Commands <i>raspi-config</i> and <i>raspi-gpio</i> not found. " +
+                    "Please install these two to the Raspberry</h4>"
+                )
+            else
+                self.notification(
+                    "<h4>Command <i>raspi-" + (config ? "config" : "gpio") + "</i> not found. " +
+                    "Please install this on to Raspberry</h4>"
+                )
+            self.set_text_all_output("Failed to retrieve")
         }
 
         self.onStartupComplete = function () {

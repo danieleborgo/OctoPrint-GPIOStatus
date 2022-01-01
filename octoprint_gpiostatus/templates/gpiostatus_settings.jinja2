@@ -8,10 +8,15 @@
             <label class="update-label">Last on <span data-bind="text: updated_hour">-</span></label>
         </div>
 
+        <div class="control-group notification" data-bind="html: notification">
+
+        </div>
+
         <ul class="nav nav-tabs" id="tabs">
             <li class="active"><a data-toggle="tab" href="#gpiostatus_gpio_status">GPIO</a></li>
             <li><a data-toggle="tab" href="#gpiostatus_services">Services</a></li>
             <li><a data-toggle="tab" href="#gpiostatus_funcs">Functionalities</a></li>
+            <li><a data-toggle="tab" href="#gpiostatus_hw">Hardware</a></li>
         </ul>
 
         <div class="tab-content">
@@ -47,83 +52,73 @@
             </div>
 
             <div id="gpiostatus_services" class="tab-pane">
-                <form class="form-horizontal">
-                    <div class="control-group">
-                        <label class="control-label">{{ _('Camera') }}</label>
-                        <div class="controls">
-                            <label class="padding-top" data-bind="text: camera_status,
+                <div class="control-group">
+                    <table class="table table-condensed table-hover table-striped table-services">
+                        <thead>
+                        <tr>
+                            <td>Service</td>
+                            <td>Status</td>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>Camera</td>
+                            <td data-bind="text: camera_status,
                                     css: { 'label-enabled': camera_status() == 'enabled',
-                                           'label-disabled': camera_status() == 'disabled'}">-</label>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label class="control-label">{{ _('SSH') }}</label>
-                        <div class="controls">
-                            <label class="padding-top" data-bind="text: ssh_status,
+                                           'label-disabled': camera_status() == 'disabled'}"></td>
+                        </tr>
+                        <tr>
+                            <td>SSH</td>
+                            <td data-bind="text: ssh_status,
                                     css: { 'label-enabled': ssh_status() == 'enabled',
-                                           'label-disabled': ssh_status() == 'disabled'}">-</label>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label class="control-label">{{ _('SPI') }}</label>
-                        <div class="controls">
-                            <label class="padding-top" data-bind="text: spi_status,
+                                           'label-disabled': ssh_status() == 'disabled'}"></td>
+                        </tr>
+                        <tr>
+                            <td>SPI</td>
+                            <td data-bind="text: spi_status,
                                     css: { 'label-enabled': spi_status() == 'enabled',
-                                           'label-disabled': spi_status() == 'disabled'}">-</label>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label class="control-label">{{ _('I2C') }}</label>
-                        <div class="controls">
-                            <label class="padding-top" data-bind="text: i2c_status,
+                                           'label-disabled': spi_status() == 'disabled'}"></td>
+                        </tr>
+                        <tr>
+                            <td>I2C</td>
+                            <td data-bind="text: i2c_status,
                                     css: { 'label-enabled': i2c_status() == 'enabled',
-                                           'label-disabled': i2c_status() == 'disabled'}">-</label>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label class="control-label">{{ _('Serial') }}</label>
-                        <div class="controls">
-                            <label class="padding-top" data-bind="text: serial_status,
+                                           'label-disabled': i2c_status() == 'disabled'}"></td>
+                        </tr>
+                        <tr>
+                            <td>Serial</td>
+                            <td data-bind="text: serial_status,
                                     css: { 'label-enabled': serial_status() == 'enabled',
-                                           'label-disabled': serial_status() == 'disabled'}">-</label>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label class="control-label">{{ _('Hardware Serial') }}</label>
-                        <div class="controls">
-                            <label class="padding-top" data-bind="text: serial_hw_status,
+                                           'label-disabled': serial_status() == 'disabled'}"></td>
+                        </tr>
+                        <tr>
+                            <td>Hardware Serial</td>
+                            <td data-bind="text: serial_hw_status,
                                     css: { 'label-enabled': serial_hw_status() == 'enabled',
-                                           'label-disabled': serial_hw_status() == 'disabled'}">-</label>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label class="control-label">{{ _('1-wire') }}</label>
-                        <div class="controls">
-                            <label class="padding-top" data-bind="text: one_wire_status,
+                                           'label-disabled': serial_hw_status() == 'disabled'}"></td>
+                        </tr>
+                        <tr>
+                            <td>1-wire</td>
+                            <td data-bind="text: one_wire_status,
                                     css: { 'label-enabled': one_wire_status() == 'enabled',
-                                           'label-disabled': one_wire_status() == 'disabled'}">-</label>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label class="control-label">{{ _('Remote GPIO') }}</label>
-                        <div class="controls">
-                            <label class="padding-top" data-bind="text: rgpio_status,
+                                           'label-disabled': one_wire_status() == 'disabled'}"></td>
+                        </tr>
+                        <tr>
+                            <td>Remote GPIO</td>
+                            <td data-bind="text: rgpio_status,
                                     css: { 'label-enabled': rgpio_status() == 'enabled',
-                                           'label-disabled': rgpio_status() == 'disabled'}">-</label>
-                        </div>
-                    </div>
-                </form>
+                                           'label-disabled': rgpio_status() == 'disabled'}"></td>
+                        </tr>
+
+                        </tbody>
+                    </table>
+
+                </div>
             </div>
+
             <div id="gpiostatus_funcs" class="tab-pane">
                 <div class="control-group">
-                    <table class="table table-condensed table-hover table-striped table-uncompressed table-funcs">
+                    <table class="table table-condensed table-hover table-striped table-funcs">
                         <thead>
                         <tr>
                             <td>BCM Pin</td>
@@ -141,6 +136,86 @@
                     </table>
                 </div>
             </div>
+
+            <div id="gpiostatus_hw" class="tab-pane">
+                <div class="control-group">
+                    <table class="table table-condensed table-hover table-striped table-services table-hw">
+                        <thead>
+                        <tr>
+                            <td>Resource</td>
+                            <td>Value</td>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>Model</td>
+                            <td data-bind="text: model_value"></td>
+                        </tr>
+                        <tr>
+                            <td>Revision</td>
+                            <td data-bind="text: revision_value"></td>
+                        </tr>
+                        <tr>
+                            <td>PCB Revision</td>
+                            <td data-bind="text: pcb_revision_value"></td>
+                        </tr>
+                        <tr>
+                            <td>Released</td>
+                            <td data-bind="text: released_value"></td>
+                        </tr>
+                        <tr>
+                            <td>Manufacturer</td>
+                            <td data-bind="text: manufacturer_value"></td>
+                        </tr>
+                        <tr>
+                            <td>SOC</td>
+                            <td data-bind="text: soc_value"></td>
+                        </tr>
+                        <tr>
+                            <td>Storage</td>
+                            <td data-bind="text: storage_value"></td>
+                        </tr>
+                        <tr>
+                            <td>USB</td>
+                            <td data-bind="text: usb_value"></td>
+                        </tr>
+                        <tr>
+                            <td>USB 3.0</td>
+                            <td data-bind="text: usb3_value"></td>
+                        </tr>
+                        <tr>
+                            <td>RAM</td>
+                            <td data-bind="text: memory_value"></td>
+                        </tr>
+                        <tr>
+                            <td>Ethernet speed</td>
+                            <td data-bind="text: eth_speed_value"></td>
+                        </tr>
+                        <tr>
+                            <td>Ethernet</td>
+                            <td data-bind="text: ethernet_value"></td>
+                        </tr>
+                        <tr>
+                            <td>WiFI</td>
+                            <td data-bind="text: wifi_value"></td>
+                        </tr>
+                        <tr>
+                            <td>Bluetooth</td>
+                            <td data-bind="text: bluetooth_value"></td>
+                        </tr>
+                        <tr>
+                            <td>CSI (port for camera)</td>
+                            <td data-bind="text: csi_value"></td>
+                        </tr>
+                        <tr>
+                            <td>DSI (port for display)</td>
+                            <td data-bind="text: dsi_value"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>

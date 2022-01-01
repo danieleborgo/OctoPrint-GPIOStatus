@@ -1,4 +1,14 @@
 
+.notification {
+    text-align: center;
+    font-weight: bold;
+    color: #FF0000;
+}
+
+.notification i {
+    font-family: Monospaced, serif;
+}
+
 .table-compressed,
 .table-uncompressed {
 
@@ -19,13 +29,20 @@
     text-align: right;
 }
 
+.table-compressed tbody tr td:nth-child(5),
 .table-compressed tbody tr td:nth-child(6),
-.table-compressed tbody tr td:nth-child(7) {
+.table-compressed tbody tr td:nth-child(7),
+.table-compressed tbody tr td:nth-child(8) {
     width: 100%;
 }
 
-.table-compressed thead tr td:nth-child(6) {
-    width: 45px;
+.table-compressed thead tr td:nth-child(5) {
+    width: 101px;
+}
+
+.table-uncompressed tbody tr td:nth-child(1),
+.table-uncompressed tbody tr td:nth-child(2) {
+    text-align: center;
 }
 
 .padding-top {
@@ -95,6 +112,21 @@
     height: 18px;
 }
 
+.table-services thead tr td,
+.table-funcs thead tr td {
+    font-weight: bold;
+}
+
+.table-services thead tr td:nth-child(1),
+.table-services tbody tr td:nth-child(1) {
+    text-align: right;
+}
+
+.table-services thead tr td:nth-child(2),
+.table-services tbody tr td:nth-child(2) {
+    text-align: left;
+}
+
 .table-funcs thead tr td {
     text-align: left;
 }
@@ -103,7 +135,11 @@
     font-weight: bold;
 }
 
-.raspberry-image{
+.table-hw tbody tr td:nth-child(2) {
+    color: #00AAFF;
+}
+
+.raspberry-image {
     width: 80%;
     padding-top: 5%;
 }

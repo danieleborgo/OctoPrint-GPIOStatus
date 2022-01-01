@@ -16,8 +16,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import absolute_import
 import octoprint.plugin
 import subprocess
-from flask import jsonify
 import gpiozero
+from flask import jsonify
+from shutil import which
 
 __plugin_pythoncompat__ = ">=3,<4"  # only python 3
 
@@ -50,14 +51,46 @@ class GPIOStatusPlugin(
 
     @staticmethod
     def __get_status():
-        info = gpiozero.pi_info()
+        commands = {
+            "raspi_config": which("raspi-config") is not None,
+            "raspi_gpio": which("raspi-gpio") is not None
+        }
 
+        if not (commands["raspi_config"] and commands["raspi_gpio"]):
+            return {
+                "commands": commands
+            }
+
+        info = gpiozero.pi_info()
         status = GPIOStatusPlugin.__get_physical_pins(info)
         GPIOStatusPlugin.__inject_bcm_data_in_physicals(status)
 
         return {
+            "commands": commands,
+            "hardware": GPIOStatusPlugin.__get_hardware_data(info),
             "services": GPIOStatusPlugin.__get_services_status(),
             "status": status
+        }
+
+    @staticmethod
+    def __get_hardware_data(info):
+        return {
+            "revision": info.revision,
+            "model": info.model,
+            "pcb_revision": info.pcb_revision,
+            "released": info.released,
+            "soc": info.soc,
+            "manufacturer": info.manufacturer,
+            "memory": info.memory,
+            "storage": info.storage,
+            "usb": info.usb,
+            "usb3": info.usb3,
+            "ethernet": info.ethernet,
+            "eth_speed": info.eth_speed,
+            "wifi": info.wifi,
+            "bluetooth": info.bluetooth,
+            "csi": info.csi,
+            "dsi": info.dsi
         }
 
     @staticmethod
@@ -159,6 +192,20 @@ class GPIOStatusPlugin(
             for config in GPIOStatusPlugin.__execute_command(
                 f"raspi-gpio funcs {0}-{n_bcm_pins - 1}"
             ).split("\n")[1:]
+        ]
+
+    def get_settings_defaults(self):
+        return dict(
+            # For future expansion
+        )
+
+    def on_settings_save(self, data):
+        self._logger.info("Data arrived")
+        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+
+    def get_template_configs(self):
+        return [
+            dict(type="settings", custom_bindings=True)
         ]
 
     def get_assets(self):

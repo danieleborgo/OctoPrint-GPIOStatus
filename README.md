@@ -1,15 +1,20 @@
 # GPIO Status
 
-This plugin allows to check the GPIO status by the
-OctoPrint web interface, without connect via SSH.
-In addition, it permits to know services' status and
+This OctoPrint plugin allows to check the GPIO status
+by its web interface, without the need to connect via SSH.
+In addition, it permits knowing services' status and
 hardware information.
 
+This plugin doesn't know which pins are in use and which
+are free, since its purpose is to just show their state.
 
 ## Prerequisites
 
-This plugin requires the commands __*raspi-config*__ and
-__*raspi-gpio*__.
+This plugin must be executed on a Rasperry and  requires
+the two commands __*raspi-config*__ and __*raspi-gpio*__.
+They're usually installed by default but, if they are not,
+the plugin will show a notification message on its 
+settings page.
 
 ## Setup
 

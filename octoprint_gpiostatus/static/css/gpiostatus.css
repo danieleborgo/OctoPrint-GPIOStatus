@@ -112,6 +112,16 @@
     height: 18px;
 }
 
+.td_spi {
+    color: #FF0000;
+    font-weight: bold;
+}
+
+.td_i2c {
+    color: #0000FF;
+    font-weight: bold;
+}
+
 .table-services thead tr td,
 .table-funcs thead tr td {
     font-weight: bold;

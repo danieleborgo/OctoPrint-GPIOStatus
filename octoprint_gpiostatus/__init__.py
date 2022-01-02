@@ -36,7 +36,7 @@ class GPIOStatusPlugin(
         super().__init__()
 
     def on_startup(self, host, port):
-        self._logger.info("GPIOStatusPlugin ready")
+        self._logger.info("Plugin ready")
 
     def get_api_commands(self):
         return dict(
@@ -63,7 +63,7 @@ class GPIOStatusPlugin(
 
         info = gpiozero.pi_info()
         status = GPIOStatusPlugin.__get_physical_pins(info)
-        GPIOStatusPlugin.__inject_bcm_data_in_physicals(status)
+        GPIOStatusPlugin.__inject_bcm_data_in_physicals(status["pins"])
 
         return {
             "commands": commands,
@@ -132,10 +132,10 @@ class GPIOStatusPlugin(
 
     @staticmethod
     def __inject_bcm_data_in_physicals(physical_pins):
-        n_bcm_pins = GPIOStatusPlugin.__count_bcm_pins(physical_pins["pins"])
+        n_bcm_pins = GPIOStatusPlugin.__count_bcm_pins(physical_pins)
         bcm_pins_status = GPIOStatusPlugin.__get_bcm_pins_status(n_bcm_pins)
 
-        for pin in physical_pins["pins"]:
+        for pin in physical_pins:
             if pin["name"] in bcm_pins_status:
                 pin["is_bcm"] = True
                 pin.update(bcm_pins_status[pin["name"]])
@@ -200,7 +200,7 @@ class GPIOStatusPlugin(
         )
 
     def on_settings_save(self, data):
-        self._logger.info("Data arrived")
+        self._logger.info("Data saved")
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
     def get_template_configs(self):
@@ -213,8 +213,8 @@ class GPIOStatusPlugin(
         # core UI here.
         return {
             "js": ["js/gpiostatus.js"],
-            "css": ["css/gpiostatus.css"],
-            "less": ["less/gpiostatus.less"]
+            "css": ["css/gpiostatus.css"]
+            # "less": ["less/gpiostatus.less"]
         }
 
     def get_update_information(self):

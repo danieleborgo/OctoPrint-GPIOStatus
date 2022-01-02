@@ -42,8 +42,33 @@
                 </div>
 
                 <div class="control-group">
-                    Remember that this plugin doesn't know which pins are in use and which are free, since
+                    This plugin doesn't know which pins are in use and which are free, since
                     its purpose is to just show their state.
+                </div>
+
+                <div class="control-group">
+                    <h4>Legend</h4>
+                    <ul>
+                        <li><b>Physical</b>:
+                            this is the physical pin name, according to the image below.
+                        </li>
+                        <li><b>Name</b>:
+                            this is the pin BCM name, if available, or its role otherwise.
+                        </li>
+                        <li><b>Function</b>:
+                            this is the pin functionality, usually input (<i>IN</i>) or output
+                            (<i>OUT</i>). In the case a service, SPI or I2C, is using it, this
+                            column will show its role.
+                        </li>
+                        <li><b>Pull</b>
+                            this is the current pull currently set on the pin and can be set as
+                            <i>pull-up</i> or <i>pull-down</i>.
+                        </li>
+                        <li><b>Voltage</b>
+                            this is the current voltage sensed in the pin and, since they're digital
+                            it can be just high or low. It can obviously differ by the pull.
+                        </li>
+                    </ul>
                 </div>
 
                 <div class="control-group" style="text-align: center;">
@@ -118,7 +143,12 @@
 
             <div id="gpiostatus_funcs" class="tab-pane">
                 <div class="control-group">
-                    <table class="table table-condensed table-hover table-striped table-funcs">
+                    The pins <b>GPIO0</b> and <b>GPIO1</b> cannot be used, since they're system reserved.<br>
+                    Legend: <span class="td_i2c">I2C</span> and <span class="td_spi">SPI</span>.
+                </div>
+
+                <div class="control-group">
+                                        <table class="table table-condensed table-hover table-striped table-funcs">
                         <thead>
                         <tr>
                             <td>BCM Pin</td>

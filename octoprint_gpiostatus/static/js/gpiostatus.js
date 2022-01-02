@@ -1,16 +1,19 @@
 /*
-Copyright (C) 2022 Daniele Borgo
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2022 Daniele Borgo
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 $(function () {
     function GPIOStatusViewModel(parameters) {
@@ -50,7 +53,8 @@ $(function () {
                     self.parse_gpio_status_and_funcs(data.status);
                     self.parse_services(data.services);
                     self.parse_hardware(data.hardware);
-                } else
+                }
+                else
                     self.set_commands_unavailable(data.commands);
             }).fail(function () {
                 console.log("Error");
@@ -79,7 +83,7 @@ $(function () {
                 raw_gpio_table.push(self.prepare_row(pin));
 
                 if (pin.is_bcm)
-                    raw_func_table.push(Array(pin.name).concat(pin.funcs))
+                    raw_func_table.push(Array(pin.name).concat(self.format_alts(pin.funcs)))
             })
             raw_func_table.sort(function (pin1, pin2) {
                 return parseInt(pin1[0].substr(4)) < parseInt(pin2[0].substr(4)) ? -1 : 1;
@@ -208,6 +212,24 @@ $(function () {
             if (pin_status.current_func === "INPUT")
                 return self.table_input_html;
             return pin_status.funcs[pin_status.current_func];
+        }
+
+        self.format_alts = function (alts){
+            let formatted = []
+
+            alts.forEach(function (alt){
+                if(alt.startsWith("SPI")) {
+                    formatted.push(self.wrap_span(alt, 'td_spi'));
+                    return;
+                }
+                if(alt.startsWith("SDA1") || alt.startsWith("SCL1")){
+                    formatted.push(self.wrap_span(alt, 'td_i2c'));
+                    return;
+                }
+                formatted.push(alt);
+            });
+
+            return formatted;
         }
 
         self.put_in_html_table = function (array) {

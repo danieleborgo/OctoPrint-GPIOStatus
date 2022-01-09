@@ -24,7 +24,7 @@ plugin_description = """This plugin allows to know better the Raspberry GPIO sta
 plugin_author = "Daniele Borgo"
 
 # The plugin's author's mail address.
-plugin_author_email = "-"
+plugin_author_email = "daniele.borgo.git@gmail.com"
 
 # The plugin's homepage URL. Can be overwritten within OctoPrint's internal data via __plugin_url__ in the plugin module
 plugin_url = "https://github.com/danieleborgo/OctoPrint-GPIOStatus"
@@ -59,7 +59,7 @@ plugin_ignored_packages = []
 # Example:
 #     plugin_requires = ["someDependency==dev"]
 #     additional_setup_parameters = {"dependency_links": ["https://github.com/someUser/someRepo/archive/master.zip#egg=someDependency-dev"]}
-additional_setup_parameters = {}
+additional_setup_parameters = {"python_requires": ">=3, <4"}
 
 ########################################################################################################################
 

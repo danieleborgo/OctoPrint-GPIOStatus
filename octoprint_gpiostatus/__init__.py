@@ -223,7 +223,7 @@ class GPIOStatusPlugin(
         # for details.
         return {
             "gpiostatus": {
-                "displayName": "GPIOStatus Plugin",
+                "displayName": "GPIO Status Plugin",
                 "displayVersion": self._plugin_version,
 
                 # version check: github repository

@@ -1,4 +1,4 @@
-# GPIOStatus
+# GPIO Status
 
 This OctoPrint plugin allows to check the GPIO status
 by its web interface, without the need to connect via SSH.

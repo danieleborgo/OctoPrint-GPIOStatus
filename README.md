@@ -1,4 +1,4 @@
-# GPIO Status
+# GPIOStatus
 
 This OctoPrint plugin allows to check the GPIO status
 by its web interface, without the need to connect via SSH.
@@ -13,8 +13,7 @@ are free, since its purpose is to just show their state.
 This plugin must be executed on a Rasperry and  requires
 the two commands __*raspi-config*__ and __*raspi-gpio*__.
 They're usually installed by default but, if they are not,
-the plugin will show a notification message on its 
-settings page.
+the plugin will show a notification message on its tab.
 
 ## Setup
 

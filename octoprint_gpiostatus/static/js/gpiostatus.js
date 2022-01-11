@@ -23,18 +23,63 @@ $(function () {
         // self.loginStateViewModel = parameters[0];
         self.settingsViewModel = parameters[0]; // For future
 
+        // Used to sort arrays
+        self.FIRST_GREATER = 1;
+        self.SECOND_GREATER = -1;
+        self.EQUAL = 0;
+
+        // Manages the last update time label
         self.updated_hour = ko.observable("-");
         self.set_hour = function () {
             let date = new Date($.now());
             self.updated_hour(date.toLocaleDateString() + " " + date.toLocaleTimeString());
         }
 
+        // To handle compact view checkbox
         self.compact_view = ko.observable(true);
-        self.checkUpdated = function () {
-            self.refresh();
+        self.compactUpdated = function () {
+            if (self.compact_view()) {
+                self.hide_special_pins(false);
+                self.order_by_name(false);
+            }
+
+            self.updateAfterCheckChanged();
             return true;
         }
 
+        // To handle the checkbox to hide special pins (power and ground)
+        self.hide_special_pins = ko.observable();
+        self.hideSpecialUpdated = function () {
+            if (self.hide_special_pins())
+                self.compact_view(false);
+
+            self.updateAfterCheckChanged();
+            return true;
+        }
+
+        // To handle the checkbox to sort pins by name
+        self.order_by_name = ko.observable();
+        self.orderByUpdated = function () {
+            if (self.order_by_name())
+                self.compact_view(false);
+
+            self.updateAfterCheckChanged();
+            return true;
+        }
+
+        self.hide_physical = ko.observable();
+
+        // To decide if, after a checkbox state change, a complete refresh is needed
+        self.updateAfterCheckChanged = function (){
+            if(self.settingsViewModel.settings.plugins.gpiostatus.reload_on_check_change()) {
+                self.refresh();
+                return;
+            }
+            self.restore_backup_or_recreate_if_null();
+        }
+
+        // This performs a complete GPIOStatus screen refresh, requiring data from the server
+        self.backup_data = null;
         self.refresh = function () {
             self.set_text_all_output("Updating...");
 
@@ -50,18 +95,33 @@ $(function () {
                 console.log("GPIO status data arrived");
 
                 if (data.commands.raspi_config && data.commands.raspi_gpio) {
-                    self.parse_gpio_status_and_funcs(data.status);
-                    self.parse_services(data.services);
-                    self.parse_hardware(data.hardware);
-                }
-                else
+                    self.backup_data = JSON.parse(JSON.stringify(data));
+                    self.parse_raw_data(data);
+                } else {
+                    self.backup_data = null;
                     self.set_commands_unavailable(data.commands);
+                }
             }).fail(function () {
                 console.log("Error");
+                self.backup_data = null;
                 self.set_text_all_output("Failed to retrieve");
             }).always(function () {
                 self.set_hour();
             });
+        }
+
+        self.restore_backup_or_recreate_if_null = function (){
+            if(self.backup_data != null){
+                self.parse_raw_data(self.backup_data);
+                return;
+            }
+            self.refresh();
+        }
+
+        self.parse_raw_data = function (data){
+            self.parse_gpio_status_and_funcs(data.status);
+            self.parse_services(data.services);
+            self.parse_hardware(data.hardware);
         }
 
         self.gpio_table = ko.observable();
@@ -71,24 +131,55 @@ $(function () {
             let columns = gpio_status.columns;
             let pins = gpio_status.pins;
             let compact_view = self.compact_view();
+            let hide_special = self.hide_special_pins();
+            let order_by_name = self.order_by_name();
 
-            if (columns !== 2 || rows % 2 === 1)
-                throw "This is not possible: col=" + columns + " row=" + rows;
+            if (columns !== 2)
+                throw "This number or columns is not possible: col=" + columns + " row=" + rows;
 
-            self.prepare_header(compact_view);
+            /* ** DATA PREPARATION ** */
 
+            // This constraint is kept by event handlers, it is here just for insurance
+            if (compact_view && (hide_special || order_by_name)) {
+                self.hide_special_pins(false);
+                hide_special = false;
+                self.order_by_name(false);
+                order_by_name = false;
+            }
+
+            if (order_by_name)
+                pins = pins.slice().sort(function (pin1, pin2) {
+                    if (pin1.is_bcm)
+                        if (pin2.is_bcm)
+                            return parseInt(pin1.name.replace("GPIO", "")) >
+                            parseInt(pin2.name.replace("GPIO", "")) ? self.FIRST_GREATER : self.SECOND_GREATER;
+                        else
+                            return self.SECOND_GREATER;
+                    if (pin2.is_bcm)
+                        return self.FIRST_GREATER;
+                    if (pin1.name === pin2.name)
+                        return self.EQUAL;
+                    return pin1.name > pin2.name ? self.FIRST_GREATER : self.SECOND_GREATER;
+                })
+
+            /* ** DATA FORMATTING ** */
+
+            // Extract data from the JSON and format it in a matrix
             let raw_gpio_table = [];
             let raw_func_table = [];
             pins.forEach(function (pin) {
-                raw_gpio_table.push(self.prepare_row(pin));
+                if (pin.is_bcm || !hide_special)
+                    raw_gpio_table.push(self.prepare_row(pin));
 
                 if (pin.is_bcm)
                     raw_func_table.push(Array(pin.name).concat(self.format_alts(pin.funcs)))
             })
             raw_func_table.sort(function (pin1, pin2) {
-                return parseInt(pin1[0].substr(4)) < parseInt(pin2[0].substr(4)) ? -1 : 1;
+                return parseInt(pin1[0].substr(4)) > parseInt(pin2[0].substr(4)) ?
+                       self.FIRST_GREATER : self.SECOND_GREATER;
             })
 
+            // Join two rows in one if compact view is enabled
             if (compact_view) {
                 let reformatted_table = [];
                 for (let i = 0; i < raw_gpio_table.length; i += 2)
@@ -96,6 +187,9 @@ $(function () {
                 raw_gpio_table = reformatted_table;
             }
 
+            /* ** DATA OUTPUT ** */
+
+            //self.prepare_header(compact_view);
             self.gpio_table(self.put_in_html_table(raw_gpio_table))
             self.funcs_table(self.put_in_html_table(raw_func_table));
         }
@@ -114,26 +208,6 @@ $(function () {
 
         self.wrap_array_with_tag = function (array, tag) {
             return "<" + tag + ">" + array.join("</" + tag + "><" + tag + ">") + "</" + tag + ">";
-        }
-
-        self.gpio_table_header = ko.observable();
-        self.gpio_table_headers_list = ["Physical", "Name", "Function", "Pull", "Voltage"];
-        self.gpio_table_headers_list_html =
-            "<tr>" +
-            self.wrap_array_td(["Image"].concat(self.gpio_table_headers_list)) +
-            "</tr>";
-        self.gpio_table_headers_list_comp_html =
-            "<tr>" +
-            self.wrap_array_td(self.gpio_table_headers_list.slice(1).reverse()) +
-            "<td colspan='4'>" + self.gpio_table_headers_list[0] + "</td>" +
-            self.wrap_array_td(self.gpio_table_headers_list.slice(1)) +
-            "</tr>";
-        self.prepare_header = function (compact_view) {
-            self.gpio_table_header(
-                compact_view ?
-                    self.gpio_table_headers_list_comp_html :
-                    self.gpio_table_headers_list_html
-            );
         }
 
         self.prepare_row = function (pin_status) {
@@ -155,7 +229,7 @@ $(function () {
         }
 
         self.img_folder = "/plugin/gpiostatus/static/img/";
-        self.raspberry_image = ko.observable(self.img_folder + "Raspberry.jpg");
+        //self.raspberry_image = ko.observable(self.img_folder + "Raspberry.jpg");
         self.create_img = function (name) {
             return "<img src='" + self.img_folder + name + ".png' class='td_img' alt='-'>";
         }
@@ -214,15 +288,15 @@ $(function () {
             return pin_status.funcs[pin_status.current_func];
         }
 
-        self.format_alts = function (alts){
+        self.format_alts = function (alts) {
             let formatted = []
 
-            alts.forEach(function (alt){
-                if(alt.startsWith("SPI")) {
+            alts.forEach(function (alt) {
+                if (alt.startsWith("SPI")) {
                     formatted.push(self.wrap_span(alt, 'td_spi'));
                     return;
                 }
-                if(alt.startsWith("SDA1") || alt.startsWith("SCL1")){
+                if (alt.startsWith("SDA1") || alt.startsWith("SCL1")) {
                     formatted.push(self.wrap_span(alt, 'td_i2c'));
                     return;
                 }
@@ -304,9 +378,8 @@ $(function () {
 
         self.set_text_all_output = function (text) {
             self.updated_hour(text)
-            self.gpio_table_header("<tr><td>" + text + "</td></tr>")
-            self.gpio_table("<tr><td>" + text + "</td></tr>")
-            self.funcs_table("<tr><td colspan='7'>" + text + "</td></tr>")
+            self.gpio_table("<tr><td colspan='100%'>" + text + "</td></tr>")
+            self.funcs_table("<tr><td colspan='100%'>" + text + "</td></tr>")
             self.camera_status(text);
             self.ssh_status(text);
             self.spi_status(text);
@@ -366,6 +439,6 @@ $(function () {
         // ViewModels your plugin depends on, e.g. loginStateViewModel, settingsViewModel, ...
         dependencies: ["settingsViewModel"],
         // Elements to bind to, e.g. #settings_plugin_gpiostatus, #tab_plugin_gpiostatus, ...
-        elements: ["#settings_plugin_gpiostatus"]
+        elements: ["#tab_plugin_gpiostatus", "#settings_plugin_gpiostatus"]
     });
 });

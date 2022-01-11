@@ -116,7 +116,7 @@ class GPIOStatusPlugin(
 
     @staticmethod
     def __get_physical_pins(info: gpiozero.PiBoardInfo):
-        pinout = info.headers["J8"]
+        pinout = info.headers["J8" if "J8" in info.headers else "P1"]
 
         return {
             "rows": pinout.rows,
@@ -132,7 +132,7 @@ class GPIOStatusPlugin(
 
     @staticmethod
     def __inject_bcm_data_in_physicals(physical_pins):
-        n_bcm_pins = GPIOStatusPlugin.__count_bcm_pins(physical_pins)
+        n_bcm_pins = GPIOStatusPlugin.__get_max_bcm_pin_int_value(physical_pins) + 1
         bcm_pins_status = GPIOStatusPlugin.__get_bcm_pins_status(n_bcm_pins)
 
         for pin in physical_pins:
@@ -143,8 +143,8 @@ class GPIOStatusPlugin(
                 pin["is_bcm"] = False
 
     @staticmethod
-    def __count_bcm_pins(pins):
-        return len([pin for pin in pins if pin["name"].startswith("GPIO")])
+    def __get_max_bcm_pin_int_value(pins):
+        return max([int(pin["name"][4:]) for pin in pins if pin["name"].startswith("GPIO")])
 
     @staticmethod
     def __get_bcm_pins_status(n_bcm_pins):
@@ -196,15 +196,15 @@ class GPIOStatusPlugin(
 
     def get_settings_defaults(self):
         return dict(
-            # For future expansion
+            reload_on_check_change=False
         )
 
     def on_settings_save(self, data):
-        self._logger.info("Data saved")
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
     def get_template_configs(self):
         return [
+            dict(type="tab", custom_bindings=True),
             dict(type="settings", custom_bindings=True)
         ]
 

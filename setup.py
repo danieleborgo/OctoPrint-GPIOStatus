@@ -11,10 +11,10 @@ plugin_package = "octoprint_" + plugin_identifier
 
 # The plugin's human readable name. Can be overwritten within OctoPrint's internal data via __plugin_name__ in the
 # plugin module
-plugin_name = "GPIO Status"
+plugin_name = "GPIOStatus"
 
 # The plugin's version. Can be overwritten within OctoPrint's internal data via __plugin_version__ in the plugin module
-plugin_version = "0.1.0"
+plugin_version = "0.1.1"
 
 # The plugin's description. Can be overwritten within OctoPrint's internal data via __plugin_description__ in the plugin
 # module
@@ -33,7 +33,7 @@ plugin_url = "https://github.com/danieleborgo/OctoPrint-GPIOStatus"
 plugin_license = "GPLv3"
 
 # Any additional requirements besides OctoPrint should be listed here
-plugin_requires = ["OctoPrint>=1.7.2", "gpiozero>=1.6.2", "flask>=1.1.4"]
+plugin_requires = ["OctoPrint>=1.7.2", "gpiozero>=1.6.2", "RPi.GPIO>=0.7.0", "flask>=1.1.4"]
 
 ### --------------------------------------------------------------------------------------------------------------------
 ### More advanced options that you usually shouldn't have to touch follow after this point

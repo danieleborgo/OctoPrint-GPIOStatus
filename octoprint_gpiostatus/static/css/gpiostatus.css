@@ -9,39 +9,51 @@
     font-family: Monospaced, serif;
 }
 
-.table-compressed,
-.table-uncompressed {
+.table-compact,
+.table-uncompact {
 
 }
 
-.table-compressed thead tr td,
-.table-uncompressed thead tr td {
+.table-compact thead tr td,
+.table-uncompact thead tr td {
     text-align: center;
     font-weight: bold;
 }
 
-.table-compressed tbody tr td:nth-child(1),
-.table-compressed tbody tr td:nth-child(2),
-.table-compressed tbody tr td:nth-child(3),
-.table-compressed tbody tr td:nth-child(4),
-.table-compressed tbody tr td:nth-child(5),
-.table-compressed tbody tr td:nth-child(6) {
+.table-compact thead tr td:nth-child(6),
+.table-compact thead tr td:nth-child(7) {
+    display: none;
+}
+
+.table-uncompact thead tr td:nth-child(1),
+.table-uncompact thead tr td:nth-child(2),
+.table-uncompact thead tr td:nth-child(3),
+.table-uncompact thead tr td:nth-child(4),
+.table-uncompact thead tr td:nth-child(5) {
+    display: none;
+}
+
+.table-compact tbody tr td:nth-child(1),
+.table-compact tbody tr td:nth-child(2),
+.table-compact tbody tr td:nth-child(3),
+.table-compact tbody tr td:nth-child(4),
+.table-compact tbody tr td:nth-child(5),
+.table-compact tbody tr td:nth-child(6) {
     text-align: right;
 }
 
-.table-compressed tbody tr td:nth-child(5),
-.table-compressed tbody tr td:nth-child(6),
-.table-compressed tbody tr td:nth-child(7),
-.table-compressed tbody tr td:nth-child(8) {
+.table-compact tbody tr td:nth-child(5),
+.table-compact tbody tr td:nth-child(6),
+.table-compact tbody tr td:nth-child(7),
+.table-compact tbody tr td:nth-child(8) {
     width: 100%;
 }
 
-.table-compressed thead tr td:nth-child(5) {
+.table-compact thead tr td:nth-child(5) {
     width: 101px;
 }
 
-.table-uncompressed tbody tr td:nth-child(1),
-.table-uncompressed tbody tr td:nth-child(2) {
+.table-uncompact tbody tr td {
     text-align: center;
 }
 
@@ -108,8 +120,8 @@
 }
 
 .td_img {
-    width: 18px;
-    height: 18px;
+    width: 17px;
+    height: 17px;
 }
 
 .td_spi {
@@ -152,4 +164,15 @@
 .raspberry-image {
     width: 80%;
     padding-top: 5%;
+}
+
+.check-table {
+    width: 100%;
+}
+
+.hide-physical-compact tbody tr td:nth-child(5),
+.hide-physical-compact tbody tr td:nth-child(8),
+.hide-physical-uncompact thead tr td:nth-child(7),
+.hide-physical-uncompact tbody tr td:nth-child(2) {
+    display: none;
 }

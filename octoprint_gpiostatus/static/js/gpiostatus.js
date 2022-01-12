@@ -23,6 +23,11 @@ $(function () {
         // self.loginStateViewModel = parameters[0];
         self.settingsViewModel = parameters[0]; // For future
 
+        self.gpiostatus = undefined;
+        self.onBeforeBinding = function () {
+            self.gpiostatus = self.settingsViewModel.settings.plugins.gpiostatus;
+        }
+
         // Used to sort arrays
         self.FIRST_GREATER = 1;
         self.SECOND_GREATER = -1;
@@ -36,51 +41,76 @@ $(function () {
         }
 
         // To handle compact view checkbox
-        self.compact_view = ko.observable(true);
         self.compactUpdated = function () {
-            if (self.compact_view()) {
-                self.hide_special_pins(false);
-                self.order_by_name(false);
+            if (self.gpiostatus.compact_view()) {
+                self.gpiostatus.hide_special_pins(false);
+                self.gpiostatus.order_by_name(false);
             }
-
             self.updateAfterCheckChanged();
+            self.saveSettings();
             return true;
         }
 
         // To handle the checkbox to hide special pins (power and ground)
-        self.hide_special_pins = ko.observable();
         self.hideSpecialUpdated = function () {
-            if (self.hide_special_pins())
-                self.compact_view(false);
-
+            if (self.gpiostatus.hide_special_pins())
+                self.gpiostatus.compact_view(false);
             self.updateAfterCheckChanged();
+            self.saveSettings();
             return true;
         }
 
         // To handle the checkbox to sort pins by name
-        self.order_by_name = ko.observable();
         self.orderByUpdated = function () {
-            if (self.order_by_name())
-                self.compact_view(false);
-
+            if (self.gpiostatus.order_by_name())
+                self.gpiostatus.compact_view(false);
             self.updateAfterCheckChanged();
+            self.saveSettings();
             return true;
         }
 
-        self.hide_physical = ko.observable();
+        self.hidePhysicalUpdated = function () {
+            self.updateAfterCheckChanged(false);
+            self.saveSettings();
+            return true;
+        }
+
+        self.saveSettings = function () {
+            self.set_loading();
+            self.settingsViewModel.saveData();
+            self.set_loading_complete();
+        }
 
         // To decide if, after a checkbox state change, a complete refresh is needed
-        self.updateAfterCheckChanged = function (){
-            if(self.settingsViewModel.settings.plugins.gpiostatus.reload_on_check_change()) {
+        self.updateAfterCheckChanged = function (update_mandatory=true) {
+            if (self.gpiostatus.reload_on_check_change()) {
                 self.refresh();
                 return;
             }
-            self.restore_backup_or_recreate_if_null();
+            if(update_mandatory)
+                self.restore_backup_or_recreate_if_null();
+        }
+
+        self.loading_state = ko.observable(false);
+        self.safe_loading_timeout = null;
+        self.set_loading = function () {
+            if(self.safe_loading_timeout != null) {
+                clearTimeout(self.safe_loading_timeout);
+                self.safe_loading_timeout = null;
+            }
+            self.loading_state(true);
+        }
+
+        self.set_loading_complete = function (){
+            self.safe_loading_timeout = setTimeout(function (){
+                self.loading_state(false);
+            }, 1000);
         }
 
         // This performs a complete GPIOStatus screen refresh, requiring data from the server
         self.backup_data = null;
         self.refresh = function () {
+            self.set_loading();
             self.set_text_all_output("Updating...");
 
             $.ajax({
@@ -90,7 +120,8 @@ $(function () {
                 contentType: "application/json; charset=UTF-8",
                 data: JSON.stringify({
                     command: "gpio_status"
-                })
+                }),
+                timeout: 10_000 //ms
             }).done(function (data) {
                 console.log("GPIO status data arrived");
 
@@ -107,18 +138,20 @@ $(function () {
                 self.set_text_all_output("Failed to retrieve");
             }).always(function () {
                 self.set_hour();
+                self.set_loading_complete();
             });
         }
 
-        self.restore_backup_or_recreate_if_null = function (){
-            if(self.backup_data != null){
+        self.restore_backup_or_recreate_if_null = function () {
+            self.set_loading();
+            if (self.backup_data != null)
                 self.parse_raw_data(self.backup_data);
-                return;
-            }
-            self.refresh();
+            else
+                self.refresh();
+            self.set_loading_complete();
         }
 
-        self.parse_raw_data = function (data){
+        self.parse_raw_data = function (data) {
             self.parse_gpio_status_and_funcs(data.status);
             self.parse_services(data.services);
             self.parse_hardware(data.hardware);
@@ -126,25 +159,30 @@ $(function () {
 
         self.gpio_table = ko.observable();
         self.funcs_table = ko.observable();
+        self.n_pins = undefined;
+        self.n_bcm_pins = undefined;
         self.parse_gpio_status_and_funcs = function (gpio_status) {
             let rows = gpio_status.rows;
             let columns = gpio_status.columns;
             let pins = gpio_status.pins;
-            let compact_view = self.compact_view();
-            let hide_special = self.hide_special_pins();
-            let order_by_name = self.order_by_name();
+            let compact_view = self.gpiostatus.compact_view();
+            let hide_special = self.gpiostatus.hide_special_pins();
+            let order_by_name = self.gpiostatus.order_by_name();
 
             if (columns !== 2)
                 throw "This number or columns is not possible: col=" + columns + " row=" + rows;
+
+            self.n_pins = columns * rows;
 
             /* ** DATA PREPARATION ** */
 
             // This constraint is kept by event handlers, it is here just for insurance
             if (compact_view && (hide_special || order_by_name)) {
-                self.hide_special_pins(false);
+                self.gpiostatus.hide_special_pins(false);
                 hide_special = false;
-                self.order_by_name(false);
+                self.gpiostatus.order_by_name(false);
                 order_by_name = false;
+                self.saveSettings();
             }
 
             if (order_by_name)
@@ -167,16 +205,19 @@ $(function () {
             // Extract data from the JSON and format it in a matrix
             let raw_gpio_table = [];
             let raw_func_table = [];
+            self.n_bcm_pins = 0;
             pins.forEach(function (pin) {
                 if (pin.is_bcm || !hide_special)
                     raw_gpio_table.push(self.prepare_row(pin));
 
-                if (pin.is_bcm)
+                if (pin.is_bcm) {
                     raw_func_table.push(Array(pin.name).concat(self.format_alts(pin.funcs)))
+                    self.n_bcm_pins++;
+                }
             })
             raw_func_table.sort(function (pin1, pin2) {
                 return parseInt(pin1[0].substr(4)) > parseInt(pin2[0].substr(4)) ?
-                       self.FIRST_GREATER : self.SECOND_GREATER;
+                    self.FIRST_GREATER : self.SECOND_GREATER;
             })
 
             // Join two rows in one if compact view is enabled
@@ -189,7 +230,6 @@ $(function () {
 
             /* ** DATA OUTPUT ** */
 
-            //self.prepare_header(compact_view);
             self.gpio_table(self.put_in_html_table(raw_gpio_table))
             self.funcs_table(self.put_in_html_table(raw_func_table));
         }

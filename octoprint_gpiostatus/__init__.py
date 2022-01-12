@@ -17,6 +17,7 @@ from __future__ import absolute_import
 import octoprint.plugin
 import subprocess
 import gpiozero
+import json
 from flask import jsonify
 from shutil import which
 
@@ -34,8 +35,11 @@ class GPIOStatusPlugin(
 
     def __init__(self):
         super().__init__()
+        self.__bcm_pins_notes = None
 
     def on_startup(self, host, port):
+        self.__bcm_pins_notes = self._settings.get(["bcm_pins_notes"])
+        self._logger.info(json.dumps(self.__bcm_pins_notes))
         self._logger.info("Plugin ready")
 
     def get_api_commands(self):
@@ -44,9 +48,10 @@ class GPIOStatusPlugin(
         )
 
     def on_api_command(self, command, data):
-        self._logger.info("Refresh request received")
         if command == "gpio_status":
+            self._logger.info("Refresh request received")
             return jsonify(GPIOStatusPlugin.__get_status())
+
         return None
 
     @staticmethod
@@ -196,7 +201,12 @@ class GPIOStatusPlugin(
 
     def get_settings_defaults(self):
         return dict(
-            reload_on_check_change=False
+            reload_on_check_change=False,
+            compact_view=True,
+            hide_special_pins=False,
+            order_by_name=False,
+            hide_physical=False,
+            bcm_pins_notes={}
         )
 
     def on_settings_save(self, data):

@@ -4,8 +4,16 @@
 
         <h3>GPIO Status</h3>
         <div class="control-group">
-            <input type="button" class="btn btn-primary" data-bind="click: refresh" value="Refresh">
-            <label class="update-label">Last on <span data-bind="text: updated_hour">-</span></label>
+            <table class="loading-button-table">
+                <tr>
+                    <td>
+                        <input type="button" class="btn btn-primary" data-bind="click: refresh" value="Refresh">
+                    </td>
+                    <td>
+                        <label class="update-label">Last on <span data-bind="text: updated_hour">-</span></label>
+                    </td>
+                </tr>
+            </table>
         </div>
 
         <div class="control-group notification" data-bind="html: notification">
@@ -22,18 +30,23 @@
         <div class="tab-content">
             <div id="gpiostatus_gpio_status" class="tab-pane active">
                 <div class="control-group">
-                    <table class="check-table">
+                    <table class="check-table" data-bind="css: {'check-table-loading': loading_state()}">
                         <tr>
                             <td>
                                 <label class="checkbox">
-                                    <input type="checkbox" data-bind="checked: compact_view, click: compactUpdated">
+                                    <input type="checkbox"
+                                           data-bind="checked: gpiostatus.compact_view,
+                                                      event: {change: compactUpdated},
+                                                      enable: !loading_state()">
                                     Compact view
                                 </label>
                             </td>
                             <td>
                                 <label class="checkbox">
                                     <input type="checkbox"
-                                           data-bind="checked: hide_special_pins, click: hideSpecialUpdated">
+                                           data-bind="checked: gpiostatus.hide_special_pins,
+                                                      event: {change: hideSpecialUpdated},
+                                                      enable: !loading_state()">
                                     Hide special pins
                                 </label>
                             </td>
@@ -41,13 +54,19 @@
                         <tr>
                             <td>
                                 <label class="checkbox">
-                                    <input type="checkbox" data-bind="checked: order_by_name, click: orderByUpdated">
+                                    <input type="checkbox"
+                                           data-bind="checked: gpiostatus.order_by_name,
+                                                      event: {change: orderByUpdated},
+                                                      enable: !loading_state()">
                                     Order by name
                                 </label>
                             </td>
                             <td>
                                 <label class="checkbox">
-                                    <input type="checkbox" data-bind="checked: hide_physical">
+                                    <input type="checkbox"
+                                           data-bind="checked: gpiostatus.hide_physical,
+                                                      event: {change: hidePhysicalUpdated},
+                                                      enable: !loading_state()">
                                     Hide physical pin
                                 </label>
                             </td>
@@ -58,17 +77,27 @@
                 <div class="control-group">
                     <table id="gpio_status_table"
                            class="table table-condensed table-hover table-striped"
-                           data-bind="css: { 'table-compact':  compact_view(),
-                                             'table-uncompact': !compact_view(),
-                                             'hide-physical-compact': hide_physical() && compact_view(),
-                                             'hide-physical-uncompact': hide_physical() && !compact_view()}">
+                           data-bind="css: { 'table-compact': gpiostatus.compact_view(),
+                                             'table-uncompact': !gpiostatus.compact_view(),
+                                             'hide-physical-compact': gpiostatus.hide_physical() &&
+                                                                      gpiostatus.compact_view(),
+                                             'hide-physical-uncompact': gpiostatus.hide_physical() &&
+                                                                        !gpiostatus.compact_view()
+                                           }">
                         <thead>
                         <tr>
                             <td>Name</td>
                             <td>Function</td>
                             <td>Pull</td>
                             <td>Voltage</td>
-                            <td data-bind='attr: { colspan: hide_physical() ? 2 : 4}'>Physical</td>
+                            <td data-bind="
+                                attr: { colspan: gpiostatus.hide_physical() ? 2 : 4 },
+                                css: {
+                                    'long-physical': !gpiostatus.hide_physical(),
+                                    'short-physical': gpiostatus.hide_physical()
+                                }">
+                                Physical
+                            </td>
                             <td>Image</td>
                             <td>Physical</td>
                             <td>Name</td>

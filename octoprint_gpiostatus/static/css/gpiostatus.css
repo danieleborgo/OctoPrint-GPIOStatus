@@ -9,6 +9,11 @@
     font-family: Monospaced, serif;
 }
 
+.loading-button-table tr td:last-child {
+    padding-left: 10px;
+    vertical-align: bottom;
+}
+
 .table-compact,
 .table-uncompact {
 
@@ -49,8 +54,12 @@
     width: 100%;
 }
 
-.table-compact thead tr td:nth-child(5) {
+.table-compact thead tr .long-physical {
     width: 101px;
+}
+
+.table-compact thead tr .short-physical {
+    width: 55px;
 }
 
 .table-uncompact tbody tr td {
@@ -168,6 +177,15 @@
 
 .check-table {
     width: 100%;
+    border-radius: 10px;
+}
+
+.check-table td {
+    padding-left: 10%;
+}
+
+.check-table-loading {
+    background-color: #F1F1FF;
 }
 
 .hide-physical-compact tbody tr td:nth-child(5),

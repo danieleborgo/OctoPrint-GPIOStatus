@@ -35,11 +35,12 @@ class GPIOStatusPlugin(
 
     def __init__(self):
         super().__init__()
-        self.__bcm_pins_notes = None
+        self.__pins_notes = None
+        self.__hardware_data = None
 
     def on_startup(self, host, port):
-        self.__bcm_pins_notes = self._settings.get(["bcm_pins_notes"])
-        self._logger.info(json.dumps(self.__bcm_pins_notes))
+        self.__pins_notes = json.dumps(self._settings.get(["pins_notes_json"]))
+        self._logger.info(json.dumps(self.__pins_notes))
         self._logger.info("Plugin ready")
 
     def get_api_commands(self):
@@ -50,12 +51,11 @@ class GPIOStatusPlugin(
     def on_api_command(self, command, data):
         if command == "gpio_status":
             self._logger.info("Refresh request received")
-            return jsonify(GPIOStatusPlugin.__get_status())
+            return jsonify(self.__get_status())
 
         return None
 
-    @staticmethod
-    def __get_status():
+    def __get_status(self):
         commands = {
             "raspi_config": which("raspi-config") is not None,
             "raspi_gpio": which("raspi-gpio") is not None
@@ -72,31 +72,34 @@ class GPIOStatusPlugin(
 
         return {
             "commands": commands,
-            "hardware": GPIOStatusPlugin.__get_hardware_data(info),
+            "hardware": self.__get_hardware_data(info),
             "services": GPIOStatusPlugin.__get_services_status(),
             "status": status
         }
 
-    @staticmethod
-    def __get_hardware_data(info):
-        return {
-            "revision": info.revision,
-            "model": info.model,
-            "pcb_revision": info.pcb_revision,
-            "released": info.released,
-            "soc": info.soc,
-            "manufacturer": info.manufacturer,
-            "memory": info.memory,
-            "storage": info.storage,
-            "usb": info.usb,
-            "usb3": info.usb3,
-            "ethernet": info.ethernet,
-            "eth_speed": info.eth_speed,
-            "wifi": info.wifi,
-            "bluetooth": info.bluetooth,
-            "csi": info.csi,
-            "dsi": info.dsi
-        }
+    def __get_hardware_data(self, info):
+        # This data cannot change during execution
+        if self.__hardware_data is None:
+            self.__hardware_data = {
+                "revision": info.revision,
+                "model": info.model,
+                "pcb_revision": info.pcb_revision,
+                "released": info.released,
+                "soc": info.soc,
+                "manufacturer": info.manufacturer,
+                "memory": info.memory,
+                "storage": info.storage,
+                "usb": info.usb,
+                "usb3": info.usb3,
+                "ethernet": info.ethernet,
+                "eth_speed": info.eth_speed,
+                "wifi": info.wifi,
+                "bluetooth": info.bluetooth,
+                "csi": info.csi,
+                "dsi": info.dsi
+            }
+
+        return self.__hardware_data
 
     @staticmethod
     def __get_services_status():
@@ -202,11 +205,13 @@ class GPIOStatusPlugin(
     def get_settings_defaults(self):
         return dict(
             reload_on_check_change=False,
+            load_on_startup=True,
             compact_view=True,
             hide_special_pins=False,
             order_by_name=False,
             hide_physical=False,
-            bcm_pins_notes={}
+            show_notes=False,
+            pins_notes_json="{}"
         )
 
     def on_settings_save(self, data):

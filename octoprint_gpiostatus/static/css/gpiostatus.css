@@ -62,6 +62,10 @@
     width: 55px;
 }
 
+.table-uncompact tbody tr td span:focus {
+    outline: none;
+}
+
 .table-uncompact tbody tr td {
     text-align: center;
 }

@@ -12,8 +12,18 @@
         <div class="controls">
             <label class="checkbox">
                 <input type="checkbox"
-                       data-bind="checked: settingsViewModel.settings.plugins.gpiostatus.reload_on_check_change">
+                       data-bind="checked: gpiostatus.reload_on_check_change">
                 {{ _("Reload completely the data whenever a checkbox state is changed") }}
+            </label>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <div class="controls">
+            <label class="checkbox">
+                <input type="checkbox"
+                       data-bind="checked: gpiostatus.load_on_startup">
+                {{ _("Load the GPIO Status when the web page is open") }}
             </label>
         </div>
     </div>

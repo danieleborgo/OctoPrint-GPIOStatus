@@ -36,7 +36,7 @@
                                 <label class="checkbox">
                                     <input type="checkbox"
                                            data-bind="checked: gpiostatus.compact_view,
-                                                      event: {change: compactUpdated},
+                                                      event: {change: compactViewUpdated},
                                                       enable: !loading_state()">
                                     Compact view
                                 </label>
@@ -45,7 +45,7 @@
                                 <label class="checkbox">
                                     <input type="checkbox"
                                            data-bind="checked: gpiostatus.hide_special_pins,
-                                                      event: {change: hideSpecialUpdated},
+                                                      event: {change: hideSpecialPinsUpdated},
                                                       enable: !loading_state()">
                                     Hide special pins
                                 </label>
@@ -56,7 +56,7 @@
                                 <label class="checkbox">
                                     <input type="checkbox"
                                            data-bind="checked: gpiostatus.order_by_name,
-                                                      event: {change: orderByUpdated},
+                                                      event: {change: orderByNameUpdated},
                                                       enable: !loading_state()">
                                     Order by name
                                 </label>
@@ -70,6 +70,18 @@
                                     Hide physical pin
                                 </label>
                             </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="checkbox">
+                                    <input type="checkbox"
+                                           data-bind="checked: gpiostatus.show_notes,
+                                                      event: {change: showNotesUpdated},
+                                                      enable: !loading_state()">
+                                    Show notes
+                                </label>
+                            </td>
+                            <td></td>
                         </tr>
                     </table>
                 </div>
@@ -101,6 +113,7 @@
                             <td>Image</td>
                             <td>Physical</td>
                             <td>Name</td>
+                            <td data-bind="visible: gpiostatus.show_notes">Note</td>
                             <td>Function</td>
                             <td>Pull</td>
                             <td>Voltage</td>
@@ -113,6 +126,7 @@
                 </div>
 
                 <div class="control-group">
+                    Autosave requires <span data-bind="html: autosave_s"></span> seconds.<br><br>
                     This plugin doesn't know which pins are in use and which are free, since
                     its purpose is to just show their state.<br>
                     Check this <a href="/plugin/gpiostatus/static/img/Raspberry.jpg" target="_blank">Image</a>

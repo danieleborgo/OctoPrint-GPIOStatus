@@ -14,12 +14,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from __future__ import absolute_import
-import octoprint.plugin
+
 import subprocess
-import gpiozero
-import json
-from flask import jsonify
+from copy import deepcopy
 from shutil import which
+
+import gpiozero
+import octoprint.plugin
+from flask import jsonify
 
 __plugin_pythoncompat__ = ">=3,<4"  # only python 3
 
@@ -35,12 +37,18 @@ class GPIOStatusPlugin(
 
     def __init__(self):
         super().__init__()
-        self.__pins_notes = None
         self.__hardware_data = None
+        self.__physical_pins = None
+        self.__max_bcm_pin = None
+        self.__raw_funcs = None
 
     def on_startup(self, host, port):
-        self.__pins_notes = json.dumps(self._settings.get(["pins_notes_json"]))
-        self._logger.info(json.dumps(self.__pins_notes))
+        info = gpiozero.pi_info()
+        self.__compute_hardware_data(info)
+        self.__prepare_physical_pins(info)
+        self.__max_bcm_pin = GPIOStatusPlugin.__get_max_bcm_pin_val(self.__physical_pins["pins"])
+        self.__prepare_raw_funcs()
+
         self._logger.info("Plugin ready")
 
     def get_api_commands(self):
@@ -51,11 +59,11 @@ class GPIOStatusPlugin(
     def on_api_command(self, command, data):
         if command == "gpio_status":
             self._logger.info("Refresh request received")
-            return jsonify(self.__get_status())
+            return jsonify(self.__get_status(hw_required=("hw" not in data) or data["hw"]))
 
         return None
 
-    def __get_status(self):
+    def __get_status(self, hw_required=True):
         commands = {
             "raspi_config": which("raspi-config") is not None,
             "raspi_gpio": which("raspi-gpio") is not None
@@ -66,40 +74,40 @@ class GPIOStatusPlugin(
                 "commands": commands
             }
 
-        info = gpiozero.pi_info()
-        status = GPIOStatusPlugin.__get_physical_pins(info)
-        GPIOStatusPlugin.__inject_bcm_data_in_physicals(status["pins"])
+        status = self.__get_physical_pins_copied()
+        self.__inject_bcm_data(status["pins"])
 
-        return {
+        formatted_status = {
             "commands": commands,
-            "hardware": self.__get_hardware_data(info),
             "services": GPIOStatusPlugin.__get_services_status(),
             "status": status
         }
 
-    def __get_hardware_data(self, info):
-        # This data cannot change during execution
-        if self.__hardware_data is None:
-            self.__hardware_data = {
-                "revision": info.revision,
-                "model": info.model,
-                "pcb_revision": info.pcb_revision,
-                "released": info.released,
-                "soc": info.soc,
-                "manufacturer": info.manufacturer,
-                "memory": info.memory,
-                "storage": info.storage,
-                "usb": info.usb,
-                "usb3": info.usb3,
-                "ethernet": info.ethernet,
-                "eth_speed": info.eth_speed,
-                "wifi": info.wifi,
-                "bluetooth": info.bluetooth,
-                "csi": info.csi,
-                "dsi": info.dsi
-            }
+        if hw_required:
+            formatted_status["hardware"] = self.__hardware_data
 
-        return self.__hardware_data
+        return formatted_status
+
+    def __compute_hardware_data(self, info):
+        # This data cannot change during execution
+        self.__hardware_data = {
+            "revision": info.revision,
+            "model": info.model,
+            "pcb_revision": info.pcb_revision,
+            "released": info.released,
+            "soc": info.soc,
+            "manufacturer": info.manufacturer,
+            "memory": info.memory,
+            "storage": info.storage,
+            "usb": info.usb,
+            "usb3": info.usb3,
+            "ethernet": info.ethernet,
+            "eth_speed": info.eth_speed,
+            "wifi": info.wifi,
+            "bluetooth": info.bluetooth,
+            "csi": info.csi,
+            "dsi": info.dsi
+        }
 
     @staticmethod
     def __get_services_status():
@@ -122,11 +130,10 @@ class GPIOStatusPlugin(
     def __execute_command(command):
         return subprocess.run(command.split(), capture_output=True).stdout.decode("utf-8").strip()
 
-    @staticmethod
-    def __get_physical_pins(info: gpiozero.PiBoardInfo):
+    def __prepare_physical_pins(self, info: gpiozero.PiBoardInfo):
         pinout = info.headers["J8" if "J8" in info.headers else "P1"]
 
-        return {
+        self.__physical_pins = {
             "rows": pinout.rows,
             "columns": pinout.columns,
             "pins": sorted([
@@ -138,10 +145,11 @@ class GPIOStatusPlugin(
             ], key=lambda pin: pin["physical_name"])
         }
 
-    @staticmethod
-    def __inject_bcm_data_in_physicals(physical_pins):
-        n_bcm_pins = GPIOStatusPlugin.__get_max_bcm_pin_int_value(physical_pins) + 1
-        bcm_pins_status = GPIOStatusPlugin.__get_bcm_pins_status(n_bcm_pins)
+    def __get_physical_pins_copied(self):
+        return deepcopy(self.__physical_pins)
+
+    def __inject_bcm_data(self, physical_pins):
+        bcm_pins_status = self.__get_bcm_pins_status()
 
         for pin in physical_pins:
             if pin["name"] in bcm_pins_status:
@@ -151,18 +159,16 @@ class GPIOStatusPlugin(
                 pin["is_bcm"] = False
 
     @staticmethod
-    def __get_max_bcm_pin_int_value(pins):
+    def __get_max_bcm_pin_val(pins):
         return max([int(pin["name"][4:]) for pin in pins if pin["name"].startswith("GPIO")])
 
-    @staticmethod
-    def __get_bcm_pins_status(n_bcm_pins):
-        bcm_pins_status = GPIOStatusPlugin.__get_split_raw_bcm_pins_status(n_bcm_pins)
-        bcm_pins_funcs = GPIOStatusPlugin.__get_split_raw_bcm_pins_funcs(n_bcm_pins)
+    def __get_bcm_pins_status(self):
+        bcm_pins_status = self.__get_raw_status()
 
         formatted = {}
         for i in range(len(bcm_pins_status)):
             status = bcm_pins_status[i]
-            funcs = bcm_pins_funcs[i]
+            funcs = self.__raw_funcs[i]
 
             formatted[f"GPIO{status[0]}"] = {
                 "current_value": int(status[1]),  # level
@@ -173,8 +179,7 @@ class GPIOStatusPlugin(
 
         return formatted
 
-    @staticmethod
-    def __get_split_raw_bcm_pins_status(n_bcm_pins):
+    def __get_raw_status(self):
         return [
             [
                 # GPIO pin number
@@ -188,17 +193,16 @@ class GPIOStatusPlugin(
             for config in [
                 config.split()
                 for config in GPIOStatusPlugin.__execute_command(
-                    f"raspi-gpio get {0}-{n_bcm_pins - 1}"
+                    f"raspi-gpio get {0}-{self.__max_bcm_pin}"
                 ).split("\n")
             ]
         ]
 
-    @staticmethod
-    def __get_split_raw_bcm_pins_funcs(n_bcm_pins):
-        return [
+    def __prepare_raw_funcs(self):
+        self.__raw_funcs = [
             config.split(", ")
             for config in GPIOStatusPlugin.__execute_command(
-                f"raspi-gpio funcs {0}-{n_bcm_pins - 1}"
+                f"raspi-gpio funcs {0}-{self.__max_bcm_pin}"
             ).split("\n")[1:]
         ]
 
@@ -211,11 +215,28 @@ class GPIOStatusPlugin(
             order_by_name=False,
             hide_physical=False,
             show_notes=False,
+            hide_images=False,
             pins_notes_json="{}"
         )
 
     def on_settings_save(self, data):
-        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+        if self.__is_data_correct(data):
+            octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+            return
+
+        # This happens in case of a JS bug
+        self._logger.info("Saving rejected: constraint not followed")
+
+    def __is_data_correct(self, data):
+        return not (self.__pick_newest("compact_view", data) and
+                    (
+                            self.__pick_newest("hide_special_pins", data) or
+                            self.__pick_newest("order_by_name", data) or
+                            self.__pick_newest("show_notes", data)
+                    ))
+
+    def __pick_newest(self, name, data):
+        return data[name] if name in data else self._settings.get_boolean([name])
 
     def get_template_configs(self):
         return [

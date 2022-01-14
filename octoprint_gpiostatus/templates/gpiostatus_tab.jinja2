@@ -10,13 +10,19 @@
                         <input type="button" class="btn btn-primary" data-bind="click: refresh" value="Refresh">
                     </td>
                     <td>
-                        <label class="update-label">Last on <span data-bind="text: updated_hour">-</span></label>
+                        <label class="update-label">
+                            Last on <span data-bind="text: last_time.label">-</span>
+                        </label>
+                    </td>
+                    <td>
+                        <span data-bind="visible: settings_saver.saving,
+                                         css: {'animation-for-saving': settings_saver.saving()}">Saving...</span>
                     </td>
                 </tr>
             </table>
         </div>
 
-        <div class="control-group notification" data-bind="html: notification">
+        <div class="control-group notification" data-bind="html: notification.content">
 
         </div>
 
@@ -30,23 +36,23 @@
         <div class="tab-content">
             <div id="gpiostatus_gpio_status" class="tab-pane active">
                 <div class="control-group">
-                    <table class="check-table" data-bind="css: {'check-table-loading': loading_state()}">
+                    <table class="check-table" data-bind="css: {'check-table-loading': load_screen.active()}">
                         <tr>
                             <td>
                                 <label class="checkbox">
                                     <input type="checkbox"
-                                           data-bind="checked: gpiostatus.compact_view,
-                                                      event: {change: compactViewUpdated},
-                                                      enable: !loading_state()">
+                                           data-bind="checked: local_checks.compact_view,
+                                                      event: {change: local_checks.compactViewUpdated},
+                                                      enable: !load_screen.active()">
                                     Compact view
                                 </label>
                             </td>
                             <td>
                                 <label class="checkbox">
                                     <input type="checkbox"
-                                           data-bind="checked: gpiostatus.hide_special_pins,
-                                                      event: {change: hideSpecialPinsUpdated},
-                                                      enable: !loading_state()">
+                                           data-bind="checked: local_checks.hide_special_pins,
+                                                      event: {change: local_checks.hideSpecialPinsUpdated},
+                                                      enable: !load_screen.active()">
                                     Hide special pins
                                 </label>
                             </td>
@@ -55,18 +61,18 @@
                             <td>
                                 <label class="checkbox">
                                     <input type="checkbox"
-                                           data-bind="checked: gpiostatus.order_by_name,
-                                                      event: {change: orderByNameUpdated},
-                                                      enable: !loading_state()">
+                                           data-bind="checked: local_checks.order_by_name,
+                                                      event: {change: local_checks.orderByNameUpdated},
+                                                      enable: !load_screen.active()">
                                     Order by name
                                 </label>
                             </td>
                             <td>
                                 <label class="checkbox">
                                     <input type="checkbox"
-                                           data-bind="checked: gpiostatus.hide_physical,
-                                                      event: {change: hidePhysicalUpdated},
-                                                      enable: !loading_state()">
+                                           data-bind="checked: local_checks.hide_physical,
+                                                      event: {change: local_checks.hidePhysicalUpdated},
+                                                      enable: !load_screen.active()">
                                     Hide physical pin
                                 </label>
                             </td>
@@ -75,13 +81,21 @@
                             <td>
                                 <label class="checkbox">
                                     <input type="checkbox"
-                                           data-bind="checked: gpiostatus.show_notes,
-                                                      event: {change: showNotesUpdated},
-                                                      enable: !loading_state()">
+                                           data-bind="checked: local_checks.show_notes,
+                                                      event: {change: local_checks.showNotesUpdated},
+                                                      enable: !load_screen.active()">
                                     Show notes
                                 </label>
                             </td>
-                            <td></td>
+                            <td>
+                                <label class="checkbox">
+                                    <input type="checkbox"
+                                           data-bind="checked: local_checks.hide_images,
+                                                      event: {change: local_checks.hideImagesUpdated},
+                                                      enable: !load_screen.active()">
+                                    Hide images
+                                </label>
+                            </td>
                         </tr>
                     </table>
                 </div>
@@ -89,37 +103,45 @@
                 <div class="control-group">
                     <table id="gpio_status_table"
                            class="table table-condensed table-hover table-striped"
-                           data-bind="css: { 'table-compact': gpiostatus.compact_view(),
-                                             'table-uncompact': !gpiostatus.compact_view(),
-                                             'hide-physical-compact': gpiostatus.hide_physical() &&
-                                                                      gpiostatus.compact_view(),
-                                             'hide-physical-uncompact': gpiostatus.hide_physical() &&
-                                                                        !gpiostatus.compact_view()
+                           data-bind="css: { 'table-compact': local_checks.compact_view(),
+                                             'table-uncompact': !local_checks.compact_view(),
+                                             'one-more-right': local_checks.compact_view() &&
+                                                        (!local_checks.hide_physical() || !local_checks.hide_images()),
+                                             'two-more-right': local_checks.compact_view() &&
+                                                        (!local_checks.hide_physical() && !local_checks.hide_images())
                                            }">
                         <thead>
                         <tr>
-                            <td>Name</td>
-                            <td>Function</td>
-                            <td>Pull</td>
-                            <td>Voltage</td>
+                            <td data-bind="visible: local_checks.compact_view">Voltage</td>
+                            <td data-bind="visible: local_checks.compact_view">Pull</td>
+                            <td data-bind="visible: local_checks.compact_view">Function</td>
+                            <td data-bind="visible: local_checks.compact_view">Name</td>
                             <td data-bind="
-                                attr: { colspan: gpiostatus.hide_physical() ? 2 : 4 },
+                                attr: { colspan: !local_checks.hide_physical() && !local_checks.hide_images() ? 4 : 2 },
                                 css: {
-                                    'long-physical': !gpiostatus.hide_physical(),
-                                    'short-physical': gpiostatus.hide_physical()
-                                }">
+                                    'long-physical': !local_checks.hide_physical() && !local_checks.hide_images(),
+                                    'short-physical': local_checks.hide_physical() || local_checks.hide_images()
+                                },
+                                visible: local_checks.compact_view() &&
+                                        (!local_checks.hide_physical() || !local_checks.hide_images())">
                                 Physical
                             </td>
-                            <td>Image</td>
-                            <td>Physical</td>
+                            <td data-bind="visible: !local_checks.compact_view() && !local_checks.hide_images()">
+                                Image
+                            </td>
+                            <td data-bind="visible: !local_checks.compact_view() && !local_checks.hide_physical()">
+                                Physical
+                            </td>
                             <td>Name</td>
-                            <td data-bind="visible: gpiostatus.show_notes">Note</td>
+                            <td data-bind="visible: !local_checks.compact_view() && local_checks.show_notes()">
+                                Note
+                            </td>
                             <td>Function</td>
                             <td>Pull</td>
                             <td>Voltage</td>
                         </tr>
                         </thead>
-                        <tbody data-bind="html: gpio_table">
+                        <tbody data-bind="html: loader.gpio_table">
                         <!-- GPIO data -->
                         </tbody>
                     </table>
@@ -171,51 +193,51 @@
                         <tbody>
                         <tr>
                             <td>Camera</td>
-                            <td data-bind="text: camera_status,
-                                    css: { 'label-enabled': camera_status() == 'enabled',
-                                           'label-disabled': camera_status() == 'disabled'}"></td>
+                            <td data-bind="text: services.camera_status,
+                                    css: { 'label-enabled': services.camera_status() == 'enabled',
+                                           'label-disabled': services.camera_status() == 'disabled'}"></td>
                         </tr>
                         <tr>
                             <td>SSH</td>
-                            <td data-bind="text: ssh_status,
-                                    css: { 'label-enabled': ssh_status() == 'enabled',
-                                           'label-disabled': ssh_status() == 'disabled'}"></td>
+                            <td data-bind="text: services.ssh_status,
+                                    css: { 'label-enabled': services.ssh_status() == 'enabled',
+                                           'label-disabled': services.ssh_status() == 'disabled'}"></td>
                         </tr>
                         <tr>
                             <td>SPI</td>
-                            <td data-bind="text: spi_status,
-                                    css: { 'label-enabled': spi_status() == 'enabled',
-                                           'label-disabled': spi_status() == 'disabled'}"></td>
+                            <td data-bind="text: services.spi_status,
+                                    css: { 'label-enabled': services.spi_status() == 'enabled',
+                                           'label-disabled': services.spi_status() == 'disabled'}"></td>
                         </tr>
                         <tr>
                             <td>I2C</td>
-                            <td data-bind="text: i2c_status,
-                                    css: { 'label-enabled': i2c_status() == 'enabled',
-                                           'label-disabled': i2c_status() == 'disabled'}"></td>
+                            <td data-bind="text: services.i2c_status,
+                                    css: { 'label-enabled': services.i2c_status() == 'enabled',
+                                           'label-disabled': services.i2c_status() == 'disabled'}"></td>
                         </tr>
                         <tr>
                             <td>Serial</td>
-                            <td data-bind="text: serial_status,
-                                    css: { 'label-enabled': serial_status() == 'enabled',
-                                           'label-disabled': serial_status() == 'disabled'}"></td>
+                            <td data-bind="text: services.serial_status,
+                                    css: { 'label-enabled': services.serial_status() == 'enabled',
+                                           'label-disabled': services.serial_status() == 'disabled'}"></td>
                         </tr>
                         <tr>
                             <td>Hardware Serial</td>
-                            <td data-bind="text: serial_hw_status,
-                                    css: { 'label-enabled': serial_hw_status() == 'enabled',
-                                           'label-disabled': serial_hw_status() == 'disabled'}"></td>
+                            <td data-bind="text: services.serial_hw_status,
+                                    css: { 'label-enabled': services.serial_hw_status() == 'enabled',
+                                           'label-disabled': services.serial_hw_status() == 'disabled'}"></td>
                         </tr>
                         <tr>
                             <td>1-wire</td>
-                            <td data-bind="text: one_wire_status,
-                                    css: { 'label-enabled': one_wire_status() == 'enabled',
-                                           'label-disabled': one_wire_status() == 'disabled'}"></td>
+                            <td data-bind="text: services.one_wire_status,
+                                    css: { 'label-enabled': services.one_wire_status() == 'enabled',
+                                           'label-disabled': services.one_wire_status() == 'disabled'}"></td>
                         </tr>
                         <tr>
                             <td>Remote GPIO</td>
-                            <td data-bind="text: rgpio_status,
-                                    css: { 'label-enabled': rgpio_status() == 'enabled',
-                                           'label-disabled': rgpio_status() == 'disabled'}"></td>
+                            <td data-bind="text: services.rgpio_status,
+                                    css: { 'label-enabled': services.rgpio_status() == 'enabled',
+                                           'label-disabled': services.rgpio_status() == 'disabled'}"></td>
                         </tr>
 
                         </tbody>
@@ -243,7 +265,7 @@
                             <td>ALT5</td>
                         </tr>
                         </thead>
-                        <tbody data-bind="html: funcs_table">
+                        <tbody data-bind="html: loader.funcs_table">
                         <!-- Func data -->
                         </tbody>
                     </table>
@@ -262,67 +284,67 @@
                         <tbody>
                         <tr>
                             <td>Model</td>
-                            <td data-bind="text: model_value"></td>
+                            <td data-bind="text: hardware.model_value"></td>
                         </tr>
                         <tr>
                             <td>Revision</td>
-                            <td data-bind="text: revision_value"></td>
+                            <td data-bind="text: hardware.revision_value"></td>
                         </tr>
                         <tr>
                             <td>PCB Revision</td>
-                            <td data-bind="text: pcb_revision_value"></td>
+                            <td data-bind="text: hardware.pcb_revision_value"></td>
                         </tr>
                         <tr>
                             <td>Released</td>
-                            <td data-bind="text: released_value"></td>
+                            <td data-bind="text: hardware.released_value"></td>
                         </tr>
                         <tr>
                             <td>Manufacturer</td>
-                            <td data-bind="text: manufacturer_value"></td>
+                            <td data-bind="text: hardware.manufacturer_value"></td>
                         </tr>
                         <tr>
                             <td>SOC</td>
-                            <td data-bind="text: soc_value"></td>
+                            <td data-bind="text: hardware.soc_value"></td>
                         </tr>
                         <tr>
                             <td>Storage</td>
-                            <td data-bind="text: storage_value"></td>
+                            <td data-bind="text: hardware.storage_value"></td>
                         </tr>
                         <tr>
                             <td>USB</td>
-                            <td data-bind="text: usb_value"></td>
+                            <td data-bind="text: hardware.usb_value"></td>
                         </tr>
                         <tr>
                             <td>USB 3.0</td>
-                            <td data-bind="text: usb3_value"></td>
+                            <td data-bind="text: hardware.usb3_value"></td>
                         </tr>
                         <tr>
                             <td>RAM</td>
-                            <td data-bind="text: memory_value"></td>
+                            <td data-bind="text: hardware.memory_value"></td>
                         </tr>
                         <tr>
                             <td>Ethernet speed</td>
-                            <td data-bind="text: eth_speed_value"></td>
+                            <td data-bind="text: hardware.eth_speed_value"></td>
                         </tr>
                         <tr>
                             <td>Ethernet</td>
-                            <td data-bind="text: ethernet_value"></td>
+                            <td data-bind="text: hardware.ethernet_value"></td>
                         </tr>
                         <tr>
                             <td>WiFI</td>
-                            <td data-bind="text: wifi_value"></td>
+                            <td data-bind="text: hardware.wifi_value"></td>
                         </tr>
                         <tr>
                             <td>Bluetooth</td>
-                            <td data-bind="text: bluetooth_value"></td>
+                            <td data-bind="text: hardware.bluetooth_value"></td>
                         </tr>
                         <tr>
                             <td>CSI (port for camera)</td>
-                            <td data-bind="text: csi_value"></td>
+                            <td data-bind="text: hardware.csi_value"></td>
                         </tr>
                         <tr>
                             <td>DSI (port for display)</td>
-                            <td data-bind="text: dsi_value"></td>
+                            <td data-bind="text: hardware.dsi_value"></td>
                         </tr>
                         </tbody>
                     </table>

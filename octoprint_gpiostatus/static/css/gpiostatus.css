@@ -9,9 +9,38 @@
     font-family: Monospaced, serif;
 }
 
-.loading-button-table tr td:last-child {
-    padding-left: 10px;
+.loading-button-table {
+    width: 100%;
+}
+
+.loading-button-table tr td:nth-child(1) {
+    width: 15%;
+}
+
+.loading-button-table tr td:nth-child(2),
+.loading-button-table tr td:nth-child(3) {
     vertical-align: bottom;
+}
+
+.loading-button-table tr td:nth-child(3) {
+    text-align: right;
+    font-weight: bold;
+}
+
+.animation-for-saving {
+    animation-name: saving-icon-animation;
+    animation-duration: 0.5s;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
+@keyframes saving-icon-animation {
+    from {
+        text-shadow: inherit;
+    }
+    to {
+        text-shadow: 0 0 5px #0AF;
+    }
 }
 
 .table-compact,
@@ -25,25 +54,10 @@
     font-weight: bold;
 }
 
-.table-compact thead tr td:nth-child(6),
-.table-compact thead tr td:nth-child(7) {
-    display: none;
-}
-
-.table-uncompact thead tr td:nth-child(1),
-.table-uncompact thead tr td:nth-child(2),
-.table-uncompact thead tr td:nth-child(3),
-.table-uncompact thead tr td:nth-child(4),
-.table-uncompact thead tr td:nth-child(5) {
-    display: none;
-}
-
 .table-compact tbody tr td:nth-child(1),
 .table-compact tbody tr td:nth-child(2),
 .table-compact tbody tr td:nth-child(3),
-.table-compact tbody tr td:nth-child(4),
-.table-compact tbody tr td:nth-child(5),
-.table-compact tbody tr td:nth-child(6) {
+.table-compact tbody tr td:nth-child(4) {
     text-align: right;
 }
 
@@ -52,6 +66,11 @@
 .table-compact tbody tr td:nth-child(7),
 .table-compact tbody tr td:nth-child(8) {
     width: 100%;
+}
+
+.one-more-right tbody tr td:nth-child(5),
+.two-more-right tbody tr td:nth-child(6) {
+    text-align: right;
 }
 
 .table-compact thead tr .long-physical {
@@ -190,11 +209,4 @@
 
 .check-table-loading {
     background-color: #F1F1FF;
-}
-
-.hide-physical-compact tbody tr td:nth-child(5),
-.hide-physical-compact tbody tr td:nth-child(8),
-.hide-physical-uncompact thead tr td:nth-child(7),
-.hide-physical-uncompact tbody tr td:nth-child(2) {
-    display: none;
 }

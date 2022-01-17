@@ -59,11 +59,14 @@ class GPIOStatusPlugin(
     def on_api_command(self, command, data):
         if command == "gpio_status":
             self._logger.info("Refresh request received")
-            return jsonify(self.__get_status(hw_required=("hw" not in data) or data["hw"]))
+            return jsonify(self.__get_status(
+                hw_required=("hw" not in data) or data["hw"],
+                funcs_required=("funcs" not in data) or data["funcs"]
+            ))
 
         return None
 
-    def __get_status(self, hw_required=True):
+    def __get_status(self, hw_required=True, funcs_required=True):
         commands = {
             "raspi_config": which("raspi-config") is not None,
             "raspi_gpio": which("raspi-gpio") is not None
@@ -75,7 +78,7 @@ class GPIOStatusPlugin(
             }
 
         status = self.__get_physical_pins_copied()
-        self.__inject_bcm_data(status["pins"])
+        self.__inject_bcm_data(status["pins"], funcs_required)
 
         formatted_status = {
             "commands": commands,
@@ -148,8 +151,8 @@ class GPIOStatusPlugin(
     def __get_physical_pins_copied(self):
         return deepcopy(self.__physical_pins)
 
-    def __inject_bcm_data(self, physical_pins):
-        bcm_pins_status = self.__get_bcm_pins_status()
+    def __inject_bcm_data(self, physical_pins, funcs_required=True):
+        bcm_pins_status = self.__get_bcm_pins_status(funcs_required)
 
         for pin in physical_pins:
             if pin["name"] in bcm_pins_status:
@@ -162,20 +165,23 @@ class GPIOStatusPlugin(
     def __get_max_bcm_pin_val(pins):
         return max([int(pin["name"][4:]) for pin in pins if pin["name"].startswith("GPIO")])
 
-    def __get_bcm_pins_status(self):
+    def __get_bcm_pins_status(self, funcs_required=True):
         bcm_pins_status = self.__get_raw_status()
 
         formatted = {}
         for i in range(len(bcm_pins_status)):
             status = bcm_pins_status[i]
             funcs = self.__raw_funcs[i]
+            index = f"GPIO{status[0]}"
 
-            formatted[f"GPIO{status[0]}"] = {
+            formatted[index] = {
                 "current_value": int(status[1]),  # level
                 "pull": funcs[1],
-                "current_func": status[2],  # alt or I/O
-                "funcs": funcs[2:]
+                "current_func": status[2]  # alt or I/O
             }
+
+            if funcs_required:
+                formatted[index]["funcs"] = funcs[2:]
 
         return formatted
 

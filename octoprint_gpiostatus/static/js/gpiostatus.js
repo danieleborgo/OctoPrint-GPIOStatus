@@ -39,7 +39,7 @@ $(function () {
             EQUAL: 0,
 
             // Const times in ms
-            POST_REQUEST_TIMEOUT: 10_000,
+            POST_REQUEST_TIMEOUT: 20_000,
             WAIT_TIME_BEFORE_SAVING: 1_500,
             CONTROLS_DISABLED_TIME: 1_000,
             NOTE_SAVE_TIMEOUT: 1_500
@@ -209,7 +209,8 @@ $(function () {
                 contentType: "application/json; charset=UTF-8",
                 data: JSON.stringify({
                     command: "gpio_status",
-                    hw: self.loader.first_time_execution
+                    hw: self.loader.first_time_execution,
+                    funcs: self.loader.first_time_execution
                 }),
                 timeout: self.const.POST_REQUEST_TIMEOUT
             }).done(function (data) {
@@ -326,22 +327,36 @@ $(function () {
 
                 // Extract data from the JSON and format it in a matrix
                 let raw_gpio_table = [];
-                let raw_func_table = [];
-                this.extractRawTables(
-                    raw_gpio_table,
-                    raw_func_table,
-                    pins,
-                    compact_view,
-                    hide_special,
-                    hide_physical,
-                    show_notes,
-                    hide_images
-                )
 
-                /* ** DATA OUTPUT ** */
+                if (self.loader.first_time_execution) {
+                    let raw_func_table = [];
 
+                    this.extractRawTables(
+                        raw_gpio_table,
+                        pins,
+                        compact_view,
+                        hide_special,
+                        hide_physical,
+                        show_notes,
+                        hide_images,
+                        true,
+                        raw_func_table
+                    );
+
+                    self.loader.funcs_table(self.format.htmlTable(raw_func_table));
+                } else
+                    this.extractRawTables(
+                        raw_gpio_table,
+                        pins,
+                        compact_view,
+                        hide_special,
+                        hide_physical,
+                        show_notes,
+                        hide_images
+                    );
+
+                /* ** GPIO DATA OUTPUT ** */
                 self.loader.gpio_table(self.format.htmlTable(raw_gpio_table));
-                self.loader.funcs_table(self.format.htmlTable(raw_func_table));
 
                 /* ** NOTES ACTIVATION ** */
 
@@ -366,8 +381,8 @@ $(function () {
                 });
             },
 
-            extractRawTables(raw_gpio_table, raw_func_table, pins,
-                             compact_view, hide_special, hide_physical, show_notes, hide_images) {
+            extractRawTables(raw_gpio_table, pins, compact_view, hide_special, hide_physical,
+                             show_notes, hide_images, parse_funcs = false, raw_func_table = undefined) {
 
                 pins.forEach(function (pin) {
                     if (pin.is_bcm || !hide_special)
@@ -378,14 +393,15 @@ $(function () {
                         else
                             raw_gpio_table.push(self.loader.prepareRow(pin, hide_images, hide_physical, show_notes));
 
-                    if (pin.is_bcm) {
+                    if (parse_funcs && pin.is_bcm) {
                         raw_func_table.push(Array(pin.name).concat(self.format.funcs(pin.funcs)))
                     }
                 });
-                raw_func_table.sort(function (pin1, pin2) {
-                    return parseInt(pin1[0].substr(4)) > parseInt(pin2[0].substr(4)) ?
-                        self.const.FIRST_GREATER : self.const.SECOND_GREATER;
-                });
+                if (parse_funcs)
+                    raw_func_table.sort(function (pin1, pin2) {
+                        return parseInt(pin1[0].substr(4)) > parseInt(pin2[0].substr(4)) ?
+                            self.const.FIRST_GREATER : self.const.SECOND_GREATER;
+                    });
 
                 // Join two rows in one if compact view is enabled
                 if (compact_view) {
@@ -443,8 +459,9 @@ $(function () {
             },
 
             setDefault(text) {
-                self.loader.gpio_table("<tr><td colspan='100%'>" + text + "</td></tr>");
-                self.loader.funcs_table("<tr><td colspan='100%'>" + text + "</td></tr>");
+                self.loader.gpio_table("<tr><td colspan='100%' style='text-align: center'>" + text + "</td></tr>");
+                if (self.loader.first_time_execution)
+                    self.loader.funcs_table("<tr><td colspan='100%' style='text-align: center'>" + text + "</td></tr>");
             }
         };
 
@@ -721,6 +738,10 @@ $(function () {
             }
             self.setTextAllOutput("Waiting to click refresh button");
         };
+
+        function easterEgg() {
+            console.log("You found an Easter egg");
+        }
     }
 
     /* view model class, parameters for constructor, container to bind to

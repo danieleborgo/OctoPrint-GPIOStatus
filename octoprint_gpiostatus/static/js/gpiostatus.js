@@ -707,12 +707,12 @@ $(function () {
                 let gpio = !config.raspi_gpio;
 
                 if (config && gpio)
-                    self.notification(
+                    self.notification.content(
                         "<h4>Commands <i>raspi-config</i> and <i>raspi-gpio</i> not found. " +
                         "Please install these two to the Raspberry</h4>"
                     )
                 else
-                    self.notification(
+                    self.notification.content(
                         "<h4>Command <i>raspi-" + (config ? "config" : "gpio") + "</i> not found. " +
                         "Please install this on to Raspberry</h4>"
                     )

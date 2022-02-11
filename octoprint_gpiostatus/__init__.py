@@ -47,7 +47,6 @@ class GPIOStatusPlugin(
         self.__compute_hardware_data(info)
         self.__prepare_physical_pins(info)
         self.__max_bcm_pin = GPIOStatusPlugin.__get_max_bcm_pin_val(self.__physical_pins["pins"])
-        self.__prepare_raw_funcs()
 
         self._logger.info("Plugin ready")
 
@@ -77,6 +76,7 @@ class GPIOStatusPlugin(
                 "commands": commands
             }
 
+        self.__prepare_raw_funcs_if_necessary()
         status = self.__get_physical_pins_copied()
         self.__inject_bcm_data(status["pins"], funcs_required)
 
@@ -204,13 +204,14 @@ class GPIOStatusPlugin(
             ]
         ]
 
-    def __prepare_raw_funcs(self):
-        self.__raw_funcs = [
-            config.split(", ")
-            for config in GPIOStatusPlugin.__execute_command(
-                f"raspi-gpio funcs {0}-{self.__max_bcm_pin}"
-            ).split("\n")[1:]
-        ]
+    def __prepare_raw_funcs_if_necessary(self):
+        if self.__raw_funcs is None:
+            self.__raw_funcs = [
+                config.split(", ")
+                for config in GPIOStatusPlugin.__execute_command(
+                    f"raspi-gpio funcs {0}-{self.__max_bcm_pin}"
+                ).split("\n")[1:]
+            ]
 
     def get_settings_defaults(self):
         return dict(

@@ -542,7 +542,7 @@ $(function () {
                     return this.html_status.out;
                 if (pin_status.current_func === "INPUT")
                     return this.html_status.in;
-                return pin_status.funcs[pin_status.current_func];
+                return pin_status.current_func;
             },
 
             funcs(funcs) {

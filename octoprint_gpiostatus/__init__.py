@@ -176,9 +176,10 @@ class GPIOStatusPlugin(
 
             formatted[index] = {
                 "current_value": int(status[1]),  # level
-                "pull": funcs[1],
-                "current_func": status[2]  # alt or I/O
+                "pull": funcs[1]
             }
+
+            formatted[index]["current_func"] = funcs[2 + int(status[2])] if status[2].isdigit() else status[2]
 
             if funcs_required:
                 formatted[index]["funcs"] = funcs[2:]

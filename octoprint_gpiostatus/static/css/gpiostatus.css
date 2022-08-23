@@ -210,3 +210,8 @@
 .check-table-loading {
     background-color: #F1F1FF;
 }
+
+#gpio_status_table tr td span {
+    padding-left: 5px;
+    padding-right: 5px;
+}

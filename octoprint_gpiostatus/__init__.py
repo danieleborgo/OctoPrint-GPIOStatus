@@ -195,7 +195,7 @@ class GPIOStatusPlugin(
                 config[2][config[2].find("=") + 1:],
                 # fsel not needed
                 # pin function
-                config[4][config[4].find("=") + 1:]
+                config[4][config[4].find("=") + 1:] if len(config) > 4 else config[3][config[3].find("=") + 1:] if len(config) > 4 else config[3][config[3].find("=") + 1:]
             ]
             for config in [
                 config.split()

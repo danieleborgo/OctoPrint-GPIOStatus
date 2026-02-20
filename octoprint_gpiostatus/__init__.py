@@ -18,6 +18,7 @@ from __future__ import absolute_import
 import subprocess
 from copy import deepcopy
 from shutil import which
+import re
 
 import gpiozero
 import octoprint.plugin
@@ -188,22 +189,23 @@ class GPIOStatusPlugin(
 
     def __get_raw_status(self):
         return [
-            [
-                # GPIO pin number
-                config[1].replace(":", ""),
-                # pin level
-                config[2][config[2].find("=") + 1:],
-                # fsel not needed
-                # pin function
-                config[4][config[4].find("=") + 1:] if len(config) > 4 else config[3][config[3].find("=") + 1:] if len(config) > 4 else config[3][config[3].find("=") + 1:]
-            ]
-            for config in [
-                config.split()
-                for config in GPIOStatusPlugin.__execute_command(
-                    f"raspi-gpio get {0}-{self.__max_bcm_pin}"
-                ).split("\n")
-            ]
+            self.__parse_raspi_gpio_line(config.strip())
+            for config in GPIOStatusPlugin.__execute_command(
+                f"raspi-gpio get {0}-{self.__max_bcm_pin}"
+            ).split("\n")
         ]
+
+    @staticmethod
+    def __parse_raspi_gpio_line(line: str):
+        gpio_match = re.search(r"GPIO\s+(\d+):", line)
+        level_match = re.search(r"\blevel=(\d+)", line)
+        func_match = re.search(r"\bfunc=([^\s]+)", line)
+
+        gpio = int(gpio_match.group(1))
+        level = int(level_match.group(1))
+        func = func_match.group(1) if func_match else ""
+
+        return gpio, level, func
 
     def __prepare_raw_funcs_if_necessary(self):
         if self.__raw_funcs is None:
@@ -245,6 +247,9 @@ class GPIOStatusPlugin(
 
     def __pick_newest(self, name, data):
         return data[name] if name in data else self._settings.get_boolean([name])
+
+    def is_api_protected(self):
+        return True
 
     def get_template_configs(self):
         return [

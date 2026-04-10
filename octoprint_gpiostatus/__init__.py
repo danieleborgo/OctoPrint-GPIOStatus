@@ -20,6 +20,10 @@ from copy import deepcopy
 from shutil import which
 import re
 
+_TOOL_AUTO = "auto"
+_TOOL_RASPI_GPIO = "raspi-gpio"
+_TOOL_PINCTRL = "pinctrl"
+
 import gpiozero
 import octoprint.plugin
 from flask import jsonify
@@ -42,6 +46,7 @@ class GPIOStatusPlugin(
         self.__physical_pins = None
         self.__max_bcm_pin = None
         self.__raw_funcs = None
+        self.__resolved_tool = None
 
     def on_startup(self, host, port):
         info = gpiozero.pi_info()
@@ -53,7 +58,8 @@ class GPIOStatusPlugin(
 
     def get_api_commands(self):
         return dict(
-            gpio_status=[]
+            gpio_status=[],
+            check_gpio_tool=["tool"]
         )
 
     def on_api_command(self, command, data):
@@ -64,15 +70,70 @@ class GPIOStatusPlugin(
                 funcs_required=("funcs" not in data) or data["funcs"]
             ))
 
+        if command == "check_gpio_tool":
+            return jsonify(self.__check_gpio_tool(data["tool"]))
+
+        return None
+
+    def __check_gpio_tool(self, tool):
+        self._logger.info("Tool check requested for: %s", tool)
+
+        if tool == _TOOL_RASPI_GPIO:
+            if which("raspi-gpio") is None:
+                self._logger.warning(
+                    "raspi-gpio not found. Install it with: sudo apt install raspi-gpio"
+                )
+                return {"tool": _TOOL_RASPI_GPIO, "available": False}
+            output = GPIOStatusPlugin.__execute_command("raspi-gpio get 0")
+            available = bool(output)
+            self._logger.info("raspi-gpio check result: %s", "working" if available else "found but not working")
+            return {"tool": _TOOL_RASPI_GPIO, "available": available}
+
+        if tool == _TOOL_PINCTRL:
+            if which("pinctrl") is None:
+                self._logger.warning(
+                    "pinctrl not found. Install it with: sudo apt install raspberrypi-utils"
+                )
+                return {"tool": _TOOL_PINCTRL, "available": False}
+            output = GPIOStatusPlugin.__execute_command("pinctrl get 0")
+            available = bool(output)
+            self._logger.info("pinctrl check result: %s", "working" if available else "found but not working")
+            return {"tool": _TOOL_PINCTRL, "available": available}
+
+        return {"tool": None, "available": False}
+
+    def __resolve_tool(self):
+        setting = self._settings.get(["gpio_tool"])
+        if setting == _TOOL_RASPI_GPIO:
+            return _TOOL_RASPI_GPIO if which("raspi-gpio") is not None else None
+        if setting == _TOOL_PINCTRL:
+            return _TOOL_PINCTRL if which("pinctrl") is not None else None
+        # Auto: prefer raspi-gpio for backward compatibility, fall back to pinctrl
+        if which("raspi-gpio") is not None:
+            return _TOOL_RASPI_GPIO
+        if which("pinctrl") is not None:
+            return _TOOL_PINCTRL
         return None
 
     def __get_status(self, hw_required=True, funcs_required=True):
+        new_tool = self.__resolve_tool()
+        if new_tool != self.__resolved_tool:
+            self.__resolved_tool = new_tool
+            self.__raw_funcs = None
+            if new_tool is None:
+                self._logger.warning(
+                    "No GPIO tool found. Install raspi-gpio (sudo apt install raspi-gpio) "
+                    "or pinctrl (sudo apt install raspberrypi-utils)"
+                )
+            else:
+                self._logger.info("Using GPIO tool: %s", new_tool)
+
         commands = {
             "raspi_config": which("raspi-config") is not None,
-            "raspi_gpio": which("raspi-gpio") is not None
+            "gpio_tool": self.__resolved_tool
         }
 
-        if not (commands["raspi_config"] and commands["raspi_gpio"]):
+        if not (commands["raspi_config"] and commands["gpio_tool"]):
             return {
                 "commands": commands
             }
@@ -188,6 +249,11 @@ class GPIOStatusPlugin(
         return formatted
 
     def __get_raw_status(self):
+        if self.__resolved_tool == _TOOL_PINCTRL:
+            return self.__get_raw_status_pinctrl()
+        return self.__get_raw_status_raspi_gpio()
+
+    def __get_raw_status_raspi_gpio(self):
         return [
             self.__parse_raspi_gpio_line(config.strip())
             for config in GPIOStatusPlugin.__execute_command(
@@ -207,14 +273,77 @@ class GPIOStatusPlugin(
 
         return gpio, level, func
 
+    def __get_raw_status_pinctrl(self):
+        return [
+            GPIOStatusPlugin.__parse_pinctrl_get_line(line.strip())
+            for line in GPIOStatusPlugin.__execute_command(
+                f"pinctrl get {0}-{self.__max_bcm_pin}"
+            ).split("\n")
+            if line.strip()
+        ]
+
+    @staticmethod
+    def __parse_pinctrl_get_line(line: str):
+        # Format (input):  "4: ip    pn | lo // GPIO4 = input"
+        # Format (output): "4: op    pn dh | hi // GPIO4 = output"
+        match = re.match(r"(\d+):\s+(\w+)\s+(\w+).*\|\s*(hi|lo|--)", line)
+        gpio = int(match.group(1))
+        fsel = match.group(2)
+        level = 1 if match.group(4) == "hi" else 0
+        if fsel == "ip":
+            func = "INPUT"
+        elif fsel == "op":
+            func = "OUTPUT"
+        else:
+            alt_match = re.match(r"a(\d+)", fsel)
+            func = alt_match.group(1) if alt_match else fsel
+        return gpio, level, func
+
     def __prepare_raw_funcs_if_necessary(self):
         if self.__raw_funcs is None:
-            self.__raw_funcs = [
-                config.split(", ")
-                for config in GPIOStatusPlugin.__execute_command(
-                    f"raspi-gpio funcs {0}-{self.__max_bcm_pin}"
-                ).split("\n")[1:]
-            ]
+            if self.__resolved_tool == _TOOL_PINCTRL:
+                self.__prepare_raw_funcs_pinctrl()
+            else:
+                self.__prepare_raw_funcs_raspi_gpio()
+
+    def __prepare_raw_funcs_raspi_gpio(self):
+        self.__raw_funcs = [
+            config.split(", ")
+            for config in GPIOStatusPlugin.__execute_command(
+                f"raspi-gpio funcs {0}-{self.__max_bcm_pin}"
+            ).split("\n")[1:]
+        ]
+
+    def __prepare_raw_funcs_pinctrl(self):
+        # Pull is in `pinctrl get`, not in `pinctrl funcs`, so read both and combine
+        pulls = {}
+        for line in GPIOStatusPlugin.__execute_command(
+            f"pinctrl get {0}-{self.__max_bcm_pin}"
+        ).split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            match = re.match(r"(\d+):\s+\w+\s+(\w+)", line)
+            if match:
+                gpio = int(match.group(1))
+                pulls[gpio] = {"pu": "UP", "pd": "DOWN"}.get(match.group(2), "NONE")
+
+        self.__raw_funcs = []
+        for line in GPIOStatusPlugin.__execute_command(
+            f"pinctrl funcs {0}-{self.__max_bcm_pin}"
+        ).split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            parts = [p.strip() for p in line.split(",")]
+            if len(parts) < 2 or not parts[0].isdigit():
+                continue
+            gpio = int(parts[0])
+            # pinctrl funcs: num, GPIO-name, alt0, alt1, ...
+            # Normalize to raspi-gpio funcs structure: [pin-id, pull, alt0, alt1, ...]
+            self.__raw_funcs.append(
+                [f"GPIO{gpio}", pulls.get(gpio, "NONE")] + parts[2:]
+            )
 
     def get_settings_defaults(self):
         return dict(
@@ -226,7 +355,8 @@ class GPIOStatusPlugin(
             hide_physical=False,
             show_notes=False,
             hide_images=False,
-            pins_notes_json="{}"
+            pins_notes_json="{}",
+            gpio_tool=_TOOL_AUTO
         )
 
     def on_settings_save(self, data):

@@ -27,4 +27,29 @@
             </label>
         </div>
     </div>
+
+    <div class="control-group-header">
+        <h4>{{ _("Advanced") }}</h4>
+    </div>
+
+    <div class="control-group">
+        <label class="control-label">{{ _("GPIO tool") }}</label>
+        <div class="controls">
+            <select data-bind="value: gpiostatus.gpio_tool">
+                <option value="auto">{{ _("Auto (raspi-gpio, then pinctrl)") }}</option>
+                <option value="raspi-gpio">raspi-gpio</option>
+                <option value="pinctrl">pinctrl</option>
+            </select>
+            <button class="btn" data-bind="click: function() { tool_check.run(); },
+                                           disable: tool_check.checking() || gpiostatus.gpio_tool() === 'auto'">
+                <span data-bind="visible: !tool_check.checking()">{{ _("Check") }}</span>
+                <span data-bind="visible: tool_check.checking()">{{ _("Checking...") }}</span>
+            </button>
+            <div data-bind="visible: tool_check.success() !== null" style="margin-top: 5px">
+                <span data-bind="text: tool_check.message,
+                                 css: {'text-success': tool_check.success(),
+                                       'text-error': tool_check.success() === false}"></span>
+            </div>
+        </div>
+    </div>
 </form>

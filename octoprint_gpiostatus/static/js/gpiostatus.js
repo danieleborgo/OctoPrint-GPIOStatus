@@ -216,7 +216,7 @@ $(function () {
             }).done(function (data) {
 
                 self.log("GPIO status data arrived");
-                if (data.commands.raspi_config && data.commands.raspi_gpio) {
+                if (data.commands.raspi_config && data.commands.gpio_tool) {
                     self.backup.backup(data);
                     self.loader.parseRawData(data);
                     return;
@@ -703,20 +703,64 @@ $(function () {
             content: ko.observable(),
 
             set_commands_unavailable(commands) {
-                let config = !commands.raspi_config;
-                let gpio = !config.raspi_gpio;
+                let no_config = !commands.raspi_config;
+                let no_gpio = !commands.gpio_tool;
 
-                if (config && gpio)
+                if (no_config && no_gpio)
                     self.notification.content(
-                        "<h4>Commands <i>raspi-config</i> and <i>raspi-gpio</i> not found. " +
-                        "Please install these two to the Raspberry</h4>"
-                    )
+                        "<h4>Commands <i>raspi-config</i> and the GPIO tool were not found. " +
+                        "Please install <i>raspi-config</i> and either <i>raspi-gpio</i> or " +
+                        "<i>raspberrypi-utils</i> (which provides <i>pinctrl</i>).</h4>"
+                    );
+                else if (no_config)
+                    self.notification.content(
+                        "<h4>Command <i>raspi-config</i> not found. " +
+                        "Please install it on the Raspberry Pi.</h4>"
+                    );
                 else
                     self.notification.content(
-                        "<h4>Command <i>raspi-" + (config ? "config" : "gpio") + "</i> not found. " +
-                        "Please install this on to Raspberry</h4>"
-                    )
+                        "<h4>No GPIO tool found. Please install <i>raspberrypi-utils</i> " +
+                        "(provides <i>pinctrl</i>) or <i>raspi-gpio</i>.</h4>"
+                    );
                 self.setTextAllOutput("Failed to retrieve");
+            }
+        };
+
+        self.tool_check = {
+            checking: ko.observable(false),
+            success: ko.observable(null),
+            message: ko.observable(""),
+
+            run() {
+                this.checking(true);
+                this.success(null);
+                this.message("");
+
+                $.ajax({
+                    url: API_BASEURL + "plugin/gpiostatus",
+                    type: "POST",
+                    dataType: "json",
+                    contentType: "application/json; charset=UTF-8",
+                    data: JSON.stringify({
+                        command: "check_gpio_tool",
+                        tool: self.gpiostatus.gpio_tool()
+                    }),
+                    timeout: self.const.POST_REQUEST_TIMEOUT
+                }).done(function (data) {
+                    self.tool_check.success(data.available);
+                    if (data.available)
+                        self.tool_check.message(data.tool + " found and working.");
+                    else
+                        self.tool_check.message(
+                            data.tool + " not found. Please install " +
+                            (data.tool === "pinctrl" ? "raspberrypi-utils." : "raspi-gpio.")
+                        );
+                }).fail(function () {
+                    self.tool_check.success(false);
+                    self.tool_check.message("Failed to check GPIO tool.");
+                }).always(function () {
+                    self.tool_check.checking(false);
+                });
             }
         };
 
